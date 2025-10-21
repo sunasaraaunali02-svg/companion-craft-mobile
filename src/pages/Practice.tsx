@@ -1,100 +1,169 @@
-import { useState } from "react";
-import { Card } from "@/components/ui/card";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Mic, Square, Settings } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { RotateCcw, Play } from "lucide-react";
+import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
+import { usePracticeSession } from "@/hooks/usePracticeSession";
+import VoiceRecorder from "@/components/practice/VoiceRecorder";
+import TranscriptionDisplay from "@/components/practice/TranscriptionDisplay";
+import GrammarFeedback from "@/components/practice/GrammarFeedback";
+import AccuracyMeter from "@/components/practice/AccuracyMeter";
+import TopicSelector from "@/components/practice/TopicSelector";
+import SessionTimer from "@/components/practice/SessionTimer";
+import { toast } from "@/hooks/use-toast";
 
 const Practice = () => {
-  const [isRecording, setIsRecording] = useState(false);
+  const [selectedTopic, setSelectedTopic] = useState("daily-life");
+  const [sessionStarted, setSessionStarted] = useState(false);
+  
+  const {
+    isRecording,
+    transcript,
+    interimTranscript,
+    startRecording,
+    stopRecording,
+    resetTranscript,
+    isSupported,
+  } = useVoiceRecorder();
+
+  const {
+    currentSession,
+    sessions,
+    startSession,
+    updateTranscript,
+    endSession,
+    analyzeGrammar,
+    calculateAccuracy,
+  } = usePracticeSession();
+
+  // Update session transcript when recording changes
+  useEffect(() => {
+    if (currentSession && transcript) {
+      updateTranscript(transcript);
+    }
+  }, [transcript, currentSession, updateTranscript]);
+
+  const handleStartSession = () => {
+    startSession(selectedTopic);
+    setSessionStarted(true);
+    startRecording();
+  };
+
+  const handleStopSession = () => {
+    stopRecording();
+    endSession();
+    setSessionStarted(false);
+    toast({
+      title: "Session completed!",
+      description: "Your practice session has been saved.",
+    });
+  };
+
+  const handleReset = () => {
+    stopRecording();
+    resetTranscript();
+    if (currentSession) {
+      endSession();
+    }
+    setSessionStarted(false);
+  };
+
+  const currentErrors = currentSession
+    ? analyzeGrammar(currentSession.transcript)
+    : [];
+  const currentAccuracy = currentSession
+    ? calculateAccuracy(currentSession.transcript, currentErrors)
+    : 0;
+  const previousScore = sessions.length > 0 ? sessions[0].accuracyScore : undefined;
+
+  if (!isSupported) {
+    return (
+      <div className="container max-w-4xl mx-auto p-4">
+        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-6 text-center">
+          <h2 className="text-xl font-semibold text-destructive mb-2">
+            Speech Recognition Not Supported
+          </h2>
+          <p className="text-muted-foreground">
+            Your browser doesn't support speech recognition. Please use Chrome, Edge, or Safari.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container max-w-4xl mx-auto p-4 space-y-6">
-      {/* Topic Selection */}
-      <Card className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Select Topic</h2>
-          <Button variant="ghost" size="icon">
-            <Settings className="h-5 w-5" />
-          </Button>
-        </div>
-        <Select defaultValue="daily-life">
-          <SelectTrigger>
-            <SelectValue placeholder="Choose a topic" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="daily-life">Daily Life</SelectItem>
-            <SelectItem value="business">Business English</SelectItem>
-            <SelectItem value="travel">Travel & Tourism</SelectItem>
-            <SelectItem value="technology">Technology</SelectItem>
-            <SelectItem value="academic">Academic English</SelectItem>
-          </SelectContent>
-        </Select>
-      </Card>
-
-      {/* Recording Area */}
-      <Card className="p-8">
-        <div className="text-center space-y-6">
-          <div className="relative">
-            <Button
-              size="lg"
-              variant={isRecording ? "destructive" : "default"}
-              className="h-32 w-32 rounded-full transition-all duration-300"
-              onClick={() => setIsRecording(!isRecording)}
-            >
-              {isRecording ? (
-                <Square className="h-12 w-12" />
-              ) : (
-                <Mic className="h-12 w-12" />
-              )}
-            </Button>
-            {isRecording && (
-              <div className="absolute inset-0 rounded-full border-4 border-destructive animate-pulse" />
-            )}
-          </div>
-          <div>
-            <p className="text-lg font-medium">
-              {isRecording ? "Recording..." : "Tap to Start Speaking"}
-            </p>
-            <p className="text-sm text-muted-foreground mt-1">
-              {isRecording ? "00:15" : "Practice your pronunciation"}
-            </p>
-          </div>
-        </div>
-      </Card>
-
-      {/* Transcription Display */}
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4">Live Transcription</h3>
-        <div className="min-h-[120px] p-4 bg-muted/50 rounded-lg">
-          <p className="text-foreground/70 font-body">
-            {isRecording
-              ? "Your speech will appear here in real-time..."
-              : "Start recording to see your transcription"}
+      {/* Header with Timer */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Practice Session</h1>
+          <p className="text-sm text-muted-foreground">
+            {sessionStarted ? "Session in progress" : "Select a topic to begin"}
           </p>
         </div>
-      </Card>
+        <SessionTimer
+          isActive={sessionStarted}
+          startTime={currentSession?.startTime}
+        />
+      </div>
 
-      {/* Grammar Feedback */}
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4">Grammar Feedback</h3>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-accent/10 rounded-lg">
-            <span className="text-sm font-medium">Accuracy Score</span>
-            <span className="text-2xl font-bold text-accent">--</span>
-          </div>
-          <div className="p-4 bg-muted/50 rounded-lg">
-            <p className="text-sm text-muted-foreground">
-              Grammar corrections will appear here after you speak
-            </p>
+      {/* Topic Selection */}
+      <TopicSelector
+        value={selectedTopic}
+        onChange={setSelectedTopic}
+        disabled={sessionStarted}
+      />
+
+      {/* Voice Recorder */}
+      <VoiceRecorder
+        isRecording={isRecording}
+        onStart={sessionStarted ? startRecording : handleStartSession}
+        onStop={stopRecording}
+        disabled={!sessionStarted && !selectedTopic}
+      />
+
+      {/* Action Buttons */}
+      {sessionStarted && (
+        <div className="flex gap-2 justify-center">
+          <Button
+            variant="outline"
+            onClick={handleReset}
+            className="gap-2"
+          >
+            <RotateCcw className="h-4 w-4" />
+            Reset
+          </Button>
+          <Button
+            onClick={handleStopSession}
+            className="gap-2"
+            disabled={!transcript}
+          >
+            <Play className="h-4 w-4" />
+            Complete Session
+          </Button>
+        </div>
+      )}
+
+      {/* Transcription Display */}
+      {sessionStarted && (
+        <TranscriptionDisplay
+          transcript={transcript}
+          interimTranscript={interimTranscript}
+          isRecording={isRecording}
+        />
+      )}
+
+      {/* Results Grid */}
+      {sessionStarted && transcript && (
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* Accuracy Meter */}
+          <AccuracyMeter score={currentAccuracy} previousScore={previousScore} />
+
+          {/* Grammar Feedback */}
+          <div className="md:col-span-2">
+            <GrammarFeedback errors={currentErrors} transcript={transcript} />
           </div>
         </div>
-      </Card>
+      )}
     </div>
   );
 };
