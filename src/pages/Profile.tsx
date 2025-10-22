@@ -1,134 +1,167 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Settings, ChevronRight } from "lucide-react";
-import { Link } from "react-router-dom";
-import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { useUserProfile } from "@/hooks/useUserProfile";
+import { AvatarUpload } from "@/components/profile/AvatarUpload";
+import { ProficiencySelector } from "@/components/profile/ProficiencySelector";
+import { Badge } from "@/components/ui/badge";
+import { X } from "lucide-react";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 const Profile = () => {
+  const { profile, updateProfile, updateAvatar } = useUserProfile();
+  const { toast } = useToast();
+  const [newGoal, setNewGoal] = useState("");
+
+  const handleSave = () => {
+    toast({
+      title: "Profile updated",
+      description: "Your profile has been successfully updated.",
+    });
+  };
+
+  const addGoal = () => {
+    if (newGoal.trim() && profile.learningGoals.length < 5) {
+      updateProfile({
+        learningGoals: [...profile.learningGoals, newGoal.trim()],
+      });
+      setNewGoal("");
+    }
+  };
+
+  const removeGoal = (index: number) => {
+    updateProfile({
+      learningGoals: profile.learningGoals.filter((_, i) => i !== index),
+    });
+  };
+
   return (
     <div className="container max-w-4xl mx-auto p-4 space-y-6">
-      {/* Profile Header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Profile</h1>
+        <Button onClick={handleSave}>Save Changes</Button>
+      </div>
+
+      {/* Avatar and Basic Info */}
       <Card className="p-6">
-        <div className="flex items-center gap-4">
-          <Avatar className="h-20 w-20">
-            <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
-              JD
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold">John Doe</h1>
-            <p className="text-muted-foreground">john.doe@email.com</p>
-            <p className="text-sm text-primary mt-1">Intermediate (B1)</p>
+        <AvatarUpload
+          avatarUrl={profile.avatarUrl}
+          displayName={profile.displayName}
+          onUpload={updateAvatar}
+        />
+
+        <Separator className="my-6" />
+
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="displayName">Display Name</Label>
+            <Input
+              id="displayName"
+              value={profile.displayName}
+              onChange={(e) => updateProfile({ displayName: e.target.value })}
+              className="mt-2"
+            />
           </div>
-          <Button variant="ghost" size="icon" asChild>
-            <Link to="/settings">
-              <Settings className="h-5 w-5" />
-            </Link>
-          </Button>
+
+          <div>
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              value={profile.email}
+              disabled
+              className="mt-2 bg-muted"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Email cannot be changed
+            </p>
+          </div>
         </div>
       </Card>
 
-      {/* Learning Stats */}
+      {/* Proficiency Level */}
       <Card className="p-6">
-        <h2 className="text-lg font-semibold mb-4">Learning Stats</h2>
-        <div className="grid grid-cols-3 gap-4">
-          <div className="text-center">
-            <p className="text-3xl font-bold text-primary">127</p>
-            <p className="text-xs text-muted-foreground mt-1">Total Sessions</p>
-          </div>
-          <div className="text-center">
-            <p className="text-3xl font-bold text-accent">45</p>
-            <p className="text-xs text-muted-foreground mt-1">Hours Practiced</p>
-          </div>
-          <div className="text-center">
-            <p className="text-3xl font-bold text-warning">7</p>
-            <p className="text-xs text-muted-foreground mt-1">Day Streak</p>
-          </div>
-        </div>
+        <h2 className="text-lg font-semibold mb-4">Language Proficiency</h2>
+        <ProficiencySelector
+          value={profile.proficiencyLevel}
+          onChange={(level) => updateProfile({ proficiencyLevel: level })}
+        />
       </Card>
 
       {/* Learning Goals */}
       <Card className="p-6">
-        <h2 className="text-lg font-semibold mb-4">Current Goals</h2>
+        <h2 className="text-lg font-semibold mb-4">Learning Goals</h2>
         <div className="space-y-4">
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>Daily Practice: 30 minutes</span>
-              <span className="text-muted-foreground">18/30 min</span>
-            </div>
-            <div className="w-full bg-muted rounded-full h-2">
-              <div className="bg-primary h-2 rounded-full" style={{ width: "60%" }} />
-            </div>
+          <div className="flex flex-wrap gap-2">
+            {profile.learningGoals.map((goal, index) => (
+              <Badge key={index} variant="secondary" className="gap-2">
+                {goal}
+                <button
+                  onClick={() => removeGoal(index)}
+                  className="hover:text-destructive"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
           </div>
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>Weekly Sessions: 5 sessions</span>
-              <span className="text-muted-foreground">3/5 sessions</span>
+
+          {profile.learningGoals.length < 5 && (
+            <div className="flex gap-2">
+              <Input
+                placeholder="Add a new learning goal..."
+                value={newGoal}
+                onChange={(e) => setNewGoal(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addGoal()}
+              />
+              <Button onClick={addGoal}>Add</Button>
             </div>
-            <div className="w-full bg-muted rounded-full h-2">
-              <div className="bg-accent h-2 rounded-full" style={{ width: "60%" }} />
-            </div>
+          )}
+          <p className="text-xs text-muted-foreground">
+            You can add up to 5 learning goals
+          </p>
+        </div>
+      </Card>
+
+      {/* Account Statistics */}
+      <Card className="p-6">
+        <h2 className="text-lg font-semibold mb-4">Account Information</h2>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className="text-sm text-muted-foreground">Member Since</p>
+            <p className="font-medium">{profile.joinedDate.toLocaleDateString()}</p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Total Sessions</p>
+            <p className="font-medium">{profile.totalSessions}</p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Practice Hours</p>
+            <p className="font-medium">{profile.totalHours}</p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Current Level</p>
+            <p className="font-medium">{profile.proficiencyLevel}</p>
           </div>
         </div>
       </Card>
 
-      {/* Preferences */}
-      <Card className="p-6">
-        <h2 className="text-lg font-semibold mb-4">Preferences</h2>
+      {/* Danger Zone */}
+      <Card className="p-6 border-destructive">
+        <h2 className="text-lg font-semibold text-destructive mb-4">Danger Zone</h2>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <Label htmlFor="notifications" className="text-base">
-                Practice Reminders
-              </Label>
+              <p className="font-medium">Delete Account</p>
               <p className="text-sm text-muted-foreground">
-                Daily notifications for practice
+                Permanently delete your account and all data
               </p>
             </div>
-            <Switch id="notifications" />
+            <Button variant="destructive">Delete Account</Button>
           </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <Label htmlFor="dark-mode" className="text-base">
-                Dark Mode
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                Switch between light and dark theme
-              </p>
-            </div>
-            <Switch id="dark-mode" />
-          </div>
-        </div>
-      </Card>
-
-      {/* Account Settings */}
-      <Card className="p-6">
-        <h2 className="text-lg font-semibold mb-4">Account</h2>
-        <div className="space-y-2">
-          <Link
-            to="/settings"
-            className="flex items-center justify-between p-3 hover:bg-muted rounded-lg transition-colors"
-          >
-            <span>Account Settings</span>
-            <ChevronRight className="h-5 w-5 text-muted-foreground" />
-          </Link>
-          <Link
-            to="/history"
-            className="flex items-center justify-between p-3 hover:bg-muted rounded-lg transition-colors"
-          >
-            <span>Practice History</span>
-            <ChevronRight className="h-5 w-5 text-muted-foreground" />
-          </Link>
-          <button className="flex items-center justify-between p-3 hover:bg-muted rounded-lg transition-colors w-full">
-            <span>Help & Support</span>
-            <ChevronRight className="h-5 w-5 text-muted-foreground" />
-          </button>
-          <button className="flex items-center justify-between p-3 hover:bg-muted rounded-lg transition-colors w-full text-destructive">
-            <span>Sign Out</span>
-            <ChevronRight className="h-5 w-5" />
-          </button>
         </div>
       </Card>
     </div>
