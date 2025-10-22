@@ -1,120 +1,195 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Mic, Volume2, Send } from "lucide-react";
+import { Mic, Send } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown } from "lucide-react";
+import { useConversation } from "@/hooks/useConversation";
+import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
+import { MessageBubble } from "@/components/conversation/MessageBubble";
+import { TypingIndicator } from "@/components/conversation/TypingIndicator";
+import { DifficultySelector } from "@/components/conversation/DifficultySlider";
+import { Badge } from "@/components/ui/badge";
 
 const Conversation = () => {
-  const [isRecording, setIsRecording] = useState(false);
+  const [selectedTopic, setSelectedTopic] = useState<string>("daily-life");
+  const [difficulty, setDifficulty] = useState<"beginner" | "intermediate" | "advanced">("beginner");
+  const [grammarFeedbackOpen, setGrammarFeedbackOpen] = useState(true);
+  
+  const {
+    currentSession,
+    messages,
+    isAITyping,
+    isAISpeaking,
+    startConversation,
+    sendMessage,
+    playAudio,
+    stopAudio,
+    endConversation,
+  } = useConversation();
+
+  const { isRecording, transcript, startRecording, stopRecording } = useVoiceRecorder();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isAITyping]);
+
+  useEffect(() => {
+    if (transcript && !isRecording) {
+      sendMessage(transcript);
+    }
+  }, [transcript, isRecording, sendMessage]);
+
+  const handleStartConversation = () => {
+    startConversation(selectedTopic, difficulty);
+  };
+
+  const handleEndConversation = () => {
+    endConversation();
+  };
+
+  const handleVoiceInput = async () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      await startRecording();
+    }
+  };
 
   return (
     <div className="container max-w-4xl mx-auto p-4 space-y-4">
-      {/* Topic Selection Tabs */}
-      <Tabs defaultValue="daily-life" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="daily-life">Daily Life</TabsTrigger>
-          <TabsTrigger value="business">Business</TabsTrigger>
-          <TabsTrigger value="travel">Travel</TabsTrigger>
-          <TabsTrigger value="tech">Tech</TabsTrigger>
-        </TabsList>
+      {/* Topic Selection and Difficulty */}
+      <Card className="p-4">
+        <Tabs value={selectedTopic} onValueChange={setSelectedTopic} className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="daily-life" disabled={!!currentSession}>
+              Daily Life
+            </TabsTrigger>
+            <TabsTrigger value="business" disabled={!!currentSession}>
+              Business
+            </TabsTrigger>
+            <TabsTrigger value="travel" disabled={!!currentSession}>
+              Travel
+            </TabsTrigger>
+            <TabsTrigger value="tech" disabled={!!currentSession}>
+              Tech
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
 
-        <TabsContent value="daily-life" className="space-y-4 mt-4">
-          {/* Chat Interface */}
+        <div className="mt-4">
+          <DifficultySelector
+            value={difficulty}
+            onChange={setDifficulty}
+            disabled={!!currentSession}
+          />
+        </div>
+
+        {!currentSession && (
+          <Button onClick={handleStartConversation} className="w-full mt-4">
+            Start Conversation
+          </Button>
+        )}
+      </Card>
+
+      {/* Chat Interface */}
+      {currentSession && (
+        <>
           <Card className="p-4 min-h-[400px] flex flex-col">
-            <div className="flex-1 space-y-4 overflow-y-auto mb-4">
-              {/* AI Message */}
-              <div className="flex gap-3">
-                <Avatar className="h-8 w-8 bg-primary">
-                  <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                    AI
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <div className="bg-muted rounded-lg p-3 max-w-[80%]">
-                    <p className="text-sm font-body">
-                      Hello! I'm your AI conversation partner. Let's talk about your daily
-                      routine. What time do you usually wake up?
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="mt-1 h-8 text-xs"
-                  >
-                    <Volume2 className="h-3 w-3 mr-1" />
-                    Play
-                  </Button>
-                </div>
+            <div className="flex items-center justify-between mb-4 pb-2 border-b">
+              <div>
+                <h3 className="font-semibold capitalize">{selectedTopic.replace("-", " ")}</h3>
+                <p className="text-xs text-muted-foreground capitalize">{difficulty} level</p>
               </div>
-
-              {/* User Message */}
-              <div className="flex gap-3 justify-end">
-                <div className="flex-1 flex justify-end">
-                  <div className="bg-primary text-primary-foreground rounded-lg p-3 max-w-[80%]">
-                    <p className="text-sm font-body">
-                      I usually wake up at 7 AM on weekdays.
-                    </p>
-                  </div>
-                </div>
-                <Avatar className="h-8 w-8 bg-secondary">
-                  <AvatarFallback className="bg-secondary text-secondary-foreground text-xs">
-                    ME
-                  </AvatarFallback>
-                </Avatar>
-              </div>
-
-              {/* Typing Indicator */}
-              <div className="flex gap-3">
-                <Avatar className="h-8 w-8 bg-primary">
-                  <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                    AI
-                  </AvatarFallback>
-                </Avatar>
-                <div className="bg-muted rounded-lg p-3">
-                  <div className="flex gap-1">
-                    <div className="h-2 w-2 bg-muted-foreground rounded-full animate-bounce" />
-                    <div className="h-2 w-2 bg-muted-foreground rounded-full animate-bounce [animation-delay:0.2s]" />
-                    <div className="h-2 w-2 bg-muted-foreground rounded-full animate-bounce [animation-delay:0.4s]" />
-                  </div>
-                </div>
-              </div>
+              <Button variant="outline" size="sm" onClick={handleEndConversation}>
+                End Session
+              </Button>
             </div>
 
+            <ScrollArea className="flex-1 pr-4">
+              <div className="space-y-4">
+                {messages.map((message) => (
+                  <MessageBubble
+                    key={message.id}
+                    message={message}
+                    isAISpeaking={isAISpeaking}
+                    onPlayAudio={playAudio}
+                    onStopAudio={stopAudio}
+                  />
+                ))}
+                {isAITyping && <TypingIndicator />}
+                <div ref={messagesEndRef} />
+              </div>
+            </ScrollArea>
+
             {/* Input Area */}
-            <div className="flex gap-2 items-center pt-4 border-t">
+            <div className="flex gap-2 items-center pt-4 border-t mt-4">
               <Button
                 size="icon"
                 variant={isRecording ? "destructive" : "default"}
                 className="h-10 w-10 rounded-full"
-                onClick={() => setIsRecording(!isRecording)}
+                onClick={handleVoiceInput}
               >
                 <Mic className="h-5 w-5" />
               </Button>
               <div className="flex-1 flex items-center justify-center">
                 {isRecording && (
                   <span className="text-sm text-destructive font-medium animate-pulse">
-                    Recording...
+                    Recording... Speak now
                   </span>
+                )}
+                {!isRecording && transcript && (
+                  <span className="text-sm text-muted-foreground">"{transcript}"</span>
                 )}
               </div>
             </div>
           </Card>
 
           {/* Grammar Feedback Panel */}
-          <Card className="p-4">
-            <h3 className="text-sm font-semibold mb-3">Grammar Feedback</h3>
-            <div className="space-y-2">
-              <div className="p-3 bg-muted/50 rounded-lg">
-                <p className="text-xs text-muted-foreground">
-                  Real-time grammar corrections will appear here during your
-                  conversation
-                </p>
-              </div>
-            </div>
-          </Card>
-        </TabsContent>
-      </Tabs>
+          <Collapsible open={grammarFeedbackOpen} onOpenChange={setGrammarFeedbackOpen}>
+            <Card className="overflow-hidden">
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="w-full flex items-center justify-between p-4 hover:bg-accent"
+                >
+                  <h3 className="text-sm font-semibold">Grammar Feedback</h3>
+                  <ChevronDown
+                    className={`h-4 w-4 transition-transform ${
+                      grammarFeedbackOpen ? "transform rotate-180" : ""
+                    }`}
+                  />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="p-4 pt-0 space-y-2">
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <p className="text-xs text-muted-foreground">
+                      Real-time grammar corrections will appear here during your conversation.
+                      Keep practicing to improve your accuracy!
+                    </p>
+                  </div>
+                  {messages.length > 2 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium">Session Accuracy</span>
+                        <Badge variant="secondary">95%</Badge>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
+        </>
+      )}
     </div>
   );
 };

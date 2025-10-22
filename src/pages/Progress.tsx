@@ -1,15 +1,70 @@
 import { Card } from "@/components/ui/card";
+import { useProgressData } from "@/hooks/useProgressData";
+import { AchievementBadge } from "@/components/progress/AchievementBadge";
+import { StreakCalendar } from "@/components/progress/StreakCalendar";
 import { Button } from "@/components/ui/button";
 import { Download, TrendingUp, Clock, Target } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress as ProgressBar } from "@/components/ui/progress";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 
 const Progress = () => {
+  const { stats, accuracyData, topicPerformance, achievements } = useProgressData();
+
+  // Generate mock calendar data
+  const generateCalendarData = () => {
+    const days = [];
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      days.push({
+        date,
+        completed: Math.random() > 0.3,
+        sessionsCount: Math.floor(Math.random() * 3),
+      });
+    }
+    return days;
+  };
+
+  const handleExport = () => {
+    const report = `
+EnglishTutor Progress Report
+============================
+Generated: ${new Date().toLocaleDateString()}
+
+Overall Statistics:
+- Average Accuracy: ${stats.averageAccuracy}%
+- Total Practice Hours: ${stats.totalHours}
+- Total Sessions: ${stats.totalSessions}
+- Current Streak: ${stats.currentStreak} days
+
+Topic Performance:
+${topicPerformance.map(t => `- ${t.topic}: ${t.accuracy}% (${t.sessions} sessions)`).join("\n")}
+
+Recent Achievements:
+${achievements.map(a => `- ${a.title}: ${a.description}`).join("\n")}
+    `.trim();
+
+    const blob = new Blob([report], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `englishtutor-progress-${new Date().toISOString().split("T")[0]}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="container max-w-4xl mx-auto p-4 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Your Progress</h1>
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" onClick={handleExport}>
           <Download className="h-4 w-4 mr-2" />
           Export Report
         </Button>
@@ -23,7 +78,7 @@ const Progress = () => {
               <TrendingUp className="h-6 w-6 text-accent" />
             </div>
             <div>
-              <p className="text-2xl font-bold">85%</p>
+              <p className="text-2xl font-bold">{stats.averageAccuracy}%</p>
               <p className="text-xs text-muted-foreground">Avg Accuracy</p>
             </div>
           </div>
@@ -35,7 +90,7 @@ const Progress = () => {
               <Clock className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <p className="text-2xl font-bold">45</p>
+              <p className="text-2xl font-bold">{stats.totalHours}</p>
               <p className="text-xs text-muted-foreground">Hours Practiced</p>
             </div>
           </div>
@@ -47,7 +102,7 @@ const Progress = () => {
               <Target className="h-6 w-6 text-warning" />
             </div>
             <div>
-              <p className="text-2xl font-bold">127</p>
+              <p className="text-2xl font-bold">{stats.totalSessions}</p>
               <p className="text-xs text-muted-foreground">Total Sessions</p>
             </div>
           </div>
@@ -59,12 +114,15 @@ const Progress = () => {
               <span className="text-2xl">🔥</span>
             </div>
             <div>
-              <p className="text-2xl font-bold">7</p>
+              <p className="text-2xl font-bold">{stats.currentStreak}</p>
               <p className="text-xs text-muted-foreground">Day Streak</p>
             </div>
           </div>
         </Card>
       </div>
+
+      {/* Calendar */}
+      <StreakCalendar days={generateCalendarData()} />
 
       {/* Detailed Charts */}
       <Tabs defaultValue="accuracy" className="w-full">
@@ -77,41 +135,44 @@ const Progress = () => {
         <TabsContent value="accuracy" className="space-y-4">
           <Card className="p-6">
             <h3 className="text-lg font-semibold mb-4">30-Day Accuracy Trend</h3>
-            <div className="h-[200px] flex items-end justify-between gap-2">
-              {Array.from({ length: 30 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="flex-1 bg-primary/20 rounded-t hover:bg-primary/40 transition-colors"
-                  style={{ height: `${Math.random() * 80 + 20}%` }}
-                />
-              ))}
-            </div>
-            <div className="flex justify-between mt-2 text-xs text-muted-foreground">
-              <span>30 days ago</span>
-              <span>Today</span>
-            </div>
+            <ChartContainer
+              config={{
+                accuracy: {
+                  label: "Accuracy",
+                  color: "hsl(var(--primary))",
+                },
+              }}
+              className="h-[300px]"
+            >
+              <BarChart data={accuracyData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Bar dataKey="accuracy" fill="var(--color-accuracy)" radius={8} />
+              </BarChart>
+            </ChartContainer>
           </Card>
         </TabsContent>
 
         <TabsContent value="time" className="space-y-4">
           <Card className="p-6">
             <h3 className="text-lg font-semibold mb-4">Weekly Practice Time</h3>
-            <div className="space-y-3">
-              {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day, i) => (
-                <div key={day} className="flex items-center gap-3">
-                  <span className="text-sm font-medium w-12">{day}</span>
-                  <div className="flex-1 bg-muted rounded-full h-8 overflow-hidden">
-                    <div
-                      className="bg-primary h-full flex items-center justify-end pr-2"
-                      style={{ width: `${Math.random() * 80 + 20}%` }}
-                    >
-                      <span className="text-xs text-primary-foreground font-medium">
-                        {Math.floor(Math.random() * 45 + 15)}m
-                      </span>
+            <div className="space-y-4">
+              {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(
+                (day, index) => {
+                  const minutes = Math.floor(Math.random() * 60 + 15);
+                  return (
+                    <div key={day}>
+                      <div className="flex justify-between text-sm mb-2">
+                        <span>{day}</span>
+                        <span className="text-muted-foreground">{minutes} min</span>
+                      </div>
+                      <ProgressBar value={(minutes / 75) * 100} />
                     </div>
-                  </div>
-                </div>
-              ))}
+                  );
+                }
+              )}
             </div>
           </Card>
         </TabsContent>
@@ -120,30 +181,15 @@ const Progress = () => {
           <Card className="p-6">
             <h3 className="text-lg font-semibold mb-4">Topic Performance</h3>
             <div className="space-y-4">
-              {[
-                { topic: "Daily Life", score: 92, sessions: 45 },
-                { topic: "Business", score: 85, sessions: 32 },
-                { topic: "Travel", score: 88, sessions: 28 },
-                { topic: "Technology", score: 81, sessions: 22 },
-              ].map((item) => (
-                <div key={item.topic} className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="font-medium">{item.topic}</span>
+              {topicPerformance.map((topic) => (
+                <div key={topic.topic}>
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="font-medium">{topic.topic}</span>
                     <span className="text-muted-foreground">
-                      {item.sessions} sessions
+                      {topic.accuracy}% · {topic.sessions} sessions
                     </span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden">
-                      <div
-                        className="bg-accent h-full"
-                        style={{ width: `${item.score}%` }}
-                      />
-                    </div>
-                    <span className="text-sm font-bold text-accent">
-                      {item.score}%
-                    </span>
-                  </div>
+                  <ProgressBar value={topic.accuracy} />
                 </div>
               ))}
             </div>
@@ -154,21 +200,9 @@ const Progress = () => {
       {/* Recent Achievements */}
       <Card className="p-6">
         <h3 className="text-lg font-semibold mb-4">Recent Achievements</h3>
-        <div className="grid grid-cols-2 gap-4">
-          {[
-            { icon: "🎯", title: "Perfect Week", desc: "7-day streak" },
-            { icon: "⭐", title: "Grammar Master", desc: "95% accuracy" },
-            { icon: "💬", title: "Conversation Pro", desc: "50 conversations" },
-            { icon: "🚀", title: "Early Bird", desc: "Practice at 6 AM" },
-          ].map((achievement) => (
-            <div
-              key={achievement.title}
-              className="p-4 bg-gradient-to-br from-primary/10 to-accent/10 rounded-lg text-center"
-            >
-              <div className="text-3xl mb-2">{achievement.icon}</div>
-              <p className="font-semibold text-sm">{achievement.title}</p>
-              <p className="text-xs text-muted-foreground">{achievement.desc}</p>
-            </div>
+        <div className="space-y-3">
+          {achievements.map((achievement) => (
+            <AchievementBadge key={achievement.id} achievement={achievement} />
           ))}
         </div>
       </Card>
