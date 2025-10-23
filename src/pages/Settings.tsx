@@ -11,14 +11,19 @@ import { useToast } from "@/hooks/use-toast";
 import { Volume2, Mic, Brain, Bell, Shield, RotateCcw } from "lucide-react";
 
 const Settings = () => {
-  const { settings, updateSettings, resetSettings } = useAppSettings();
+  const { settings, loading, updateSettings, resetSettings, saveSettings } = useAppSettings();
   const { toast } = useToast();
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
   const handleSave = () => {
-    toast({
-      title: "Settings saved",
-      description: "Your preferences have been successfully updated.",
-    });
+    saveSettings();
   };
 
   const handleReset = () => {

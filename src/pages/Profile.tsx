@@ -12,9 +12,17 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 const Profile = () => {
-  const { profile, updateProfile, updateAvatar } = useUserProfile();
+  const { profile, loading, updateProfile, updateAvatar } = useUserProfile();
   const { toast } = useToast();
   const [newGoal, setNewGoal] = useState("");
+
+  if (loading || !profile) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   const handleSave = () => {
     toast({
@@ -140,7 +148,7 @@ const Profile = () => {
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Practice Hours</p>
-            <p className="font-medium">{profile.totalHours}</p>
+            <p className="font-medium">{profile.totalHours.toFixed(1)} hrs</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Current Level</p>

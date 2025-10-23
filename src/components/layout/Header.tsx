@@ -1,4 +1,4 @@
-import { Menu } from "lucide-react";
+import { Menu, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -8,8 +8,11 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Header = () => {
+  const { signOut } = useAuth();
+
   return (
     <header className="sticky top-0 left-0 right-0 bg-card border-b border-border z-40">
       <div className="flex items-center justify-between h-16 max-w-screen-xl mx-auto px-4">
@@ -50,12 +53,14 @@ const Header = () => {
               >
                 Help & Support
               </Link>
-              <Link
-                to="#"
-                className="text-foreground hover:text-primary transition-colors py-2 text-lg"
+              <Button
+                variant="ghost"
+                className="justify-start p-0 h-auto text-foreground hover:text-primary transition-colors py-2 text-lg"
+                onClick={signOut}
               >
-                Feedback
-              </Link>
+                <LogOut className="mr-2 h-5 w-5" />
+                Sign Out
+              </Button>
             </nav>
           </SheetContent>
         </Sheet>
