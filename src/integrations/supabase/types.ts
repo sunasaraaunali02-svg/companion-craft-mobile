@@ -14,7 +14,159 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      conversations: {
+        Row: {
+          created_at: string | null
+          difficulty: string | null
+          duration: number | null
+          id: string
+          messages: Json | null
+          topic: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          difficulty?: string | null
+          duration?: number | null
+          id?: string
+          messages?: Json | null
+          topic: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          difficulty?: string | null
+          duration?: number | null
+          id?: string
+          messages?: Json | null
+          topic?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      practice_sessions: {
+        Row: {
+          accuracy: number | null
+          corrections: Json | null
+          created_at: string | null
+          duration: number
+          id: string
+          topic: string
+          transcript: string | null
+          user_id: string
+        }
+        Insert: {
+          accuracy?: number | null
+          corrections?: Json | null
+          created_at?: string | null
+          duration?: number
+          id?: string
+          topic: string
+          transcript?: string | null
+          user_id: string
+        }
+        Update: {
+          accuracy?: number | null
+          corrections?: Json | null
+          created_at?: string | null
+          duration?: number
+          id?: string
+          topic?: string
+          transcript?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "practice_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          display_name: string | null
+          id: string
+          learning_goals: string[] | null
+          proficiency_level: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          id: string
+          learning_goals?: string[] | null
+          proficiency_level?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          id?: string
+          learning_goals?: string[] | null
+          proficiency_level?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          audio_settings: Json | null
+          conversation_settings: Json | null
+          created_at: string | null
+          grammar_settings: Json | null
+          notification_settings: Json | null
+          privacy_settings: Json | null
+          speech_settings: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          audio_settings?: Json | null
+          conversation_settings?: Json | null
+          created_at?: string | null
+          grammar_settings?: Json | null
+          notification_settings?: Json | null
+          privacy_settings?: Json | null
+          speech_settings?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          audio_settings?: Json | null
+          conversation_settings?: Json | null
+          created_at?: string | null
+          grammar_settings?: Json | null
+          notification_settings?: Json | null
+          privacy_settings?: Json | null
+          speech_settings?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
