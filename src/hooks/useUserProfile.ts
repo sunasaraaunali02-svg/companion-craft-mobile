@@ -1,4 +1,7 @@
 import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 export interface UserProfile {
   id: string;
@@ -13,28 +16,124 @@ export interface UserProfile {
 }
 
 export const useUserProfile = () => {
-  const [profile, setProfile] = useState<UserProfile>({
-    id: "user-1",
-    displayName: "English Learner",
-    email: "user@example.com",
-    proficiencyLevel: "B1",
-    learningGoals: ["Improve pronunciation", "Expand vocabulary", "Practice daily conversations"],
-    joinedDate: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000),
-    totalSessions: 45,
-    totalHours: 12.5,
-  });
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const updateProfile = (updates: Partial<UserProfile>) => {
-    setProfile((prev) => ({ ...prev, ...updates }));
+  useEffect(() => {
+    if (user) {
+      fetchProfile();
+      fetchStats();
+    }
+  }, [user]);
+
+  const fetchProfile = async () => {
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .single();
+
+    if (error) {
+      console.error("Error fetching profile:", error);
+      return;
+    }
+
+    if (data) {
+      setProfile({
+        id: data.id,
+        displayName: data.display_name || "English Learner",
+        email: user.email || "",
+        avatarUrl: data.avatar_url || undefined,
+        proficiencyLevel: (data.proficiency_level as any) || "B1",
+        learningGoals: data.learning_goals || [],
+        joinedDate: new Date(data.created_at),
+        totalSessions: 0,
+        totalHours: 0,
+      });
+    }
+    setLoading(false);
   };
 
-  const updateAvatar = (file: File) => {
-    const url = URL.createObjectURL(file);
-    updateProfile({ avatarUrl: url });
+  const fetchStats = async () => {
+    if (!user) return;
+
+    const { data: sessions } = await supabase
+      .from("practice_sessions")
+      .select("duration")
+      .eq("user_id", user.id);
+
+    if (sessions) {
+      const totalSessions = sessions.length;
+      const totalMinutes = sessions.reduce((acc, s) => acc + (s.duration || 0), 0);
+      const totalHours = totalMinutes / 60;
+
+      setProfile((prev) => prev ? { ...prev, totalSessions, totalHours } : null);
+    }
+  };
+
+  const updateProfile = async (updates: Partial<UserProfile>) => {
+    if (!user) return;
+
+    const dbUpdates: any = {};
+    if (updates.displayName) dbUpdates.display_name = updates.displayName;
+    if (updates.proficiencyLevel) dbUpdates.proficiency_level = updates.proficiencyLevel;
+    if (updates.learningGoals) dbUpdates.learning_goals = updates.learningGoals;
+    if (updates.avatarUrl !== undefined) dbUpdates.avatar_url = updates.avatarUrl;
+
+    const { error } = await supabase
+      .from("profiles")
+      .update(dbUpdates)
+      .eq("id", user.id);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update profile",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setProfile((prev) => prev ? { ...prev, ...updates } : null);
+    toast({
+      title: "Success",
+      description: "Profile updated successfully",
+    });
+  };
+
+  const updateAvatar = async (file: File) => {
+    if (!user) return;
+
+    const fileExt = file.name.split('.').pop();
+    const filePath = `${user.id}/avatar.${fileExt}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(filePath, file, { upsert: true });
+
+    if (uploadError) {
+      toast({
+        title: "Error",
+        description: "Failed to upload avatar",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const { data } = supabase.storage
+      .from("avatars")
+      .getPublicUrl(filePath);
+
+    await updateProfile({ avatarUrl: data.publicUrl });
   };
 
   return {
     profile,
+    loading,
     updateProfile,
     updateAvatar,
   };
