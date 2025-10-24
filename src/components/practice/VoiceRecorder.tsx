@@ -17,27 +17,27 @@ const VoiceRecorder = ({ isRecording, onStart, onStop, disabled }: VoiceRecorder
           size="lg"
           variant={isRecording ? "destructive" : "default"}
           className={cn(
-            "h-32 w-32 rounded-full transition-all duration-300 shadow-lg",
-            isRecording && "animate-pulse"
+            "h-32 w-32 rounded-full transition-all duration-300 shadow-lg hover-scale",
+            isRecording && "animate-pulse-recording"
           )}
           onClick={isRecording ? onStop : onStart}
           disabled={disabled}
         >
           {isRecording ? (
-            <Square className="h-12 w-12" />
+            <Square className="h-12 w-12 transition-transform duration-200" />
           ) : (
-            <Mic className="h-12 w-12" />
+            <Mic className="h-12 w-12 transition-transform duration-200" />
           )}
         </Button>
         {isRecording && (
           <>
             <div className="absolute inset-0 rounded-full border-4 border-destructive animate-ping opacity-75" />
-            <div className="absolute inset-0 rounded-full border-4 border-destructive" />
+            <div className="absolute inset-0 rounded-full border-4 border-destructive opacity-50" />
           </>
         )}
       </div>
-      <div className="mt-6 text-center">
-        <p className="text-lg font-semibold">
+      <div className="mt-6 text-center animate-slide-in-bottom">
+        <p className="text-lg font-semibold text-foreground">
           {isRecording ? "Recording..." : "Tap to Start Speaking"}
         </p>
         <p className="text-sm text-muted-foreground mt-1">

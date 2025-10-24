@@ -24,9 +24,9 @@ const Home = () => {
   ];
 
   return (
-    <div className="container max-w-4xl mx-auto p-4 space-y-6">
+    <div className="container max-w-4xl mx-auto p-4 space-y-6 animate-fade-in">
       {/* Welcome Banner */}
-      <Card className="p-6 bg-gradient-to-br from-primary/10 via-primary/5 to-accent/10 border-primary/20">
+      <Card className="p-6 bg-gradient-to-br from-primary/10 via-primary/5 to-accent/10 border-primary/20 animate-slide-in-top">
         <div className="flex items-start justify-between mb-2">
           <div>
             <h1 className="text-2xl font-bold mb-1">Welcome back!</h1>
@@ -43,8 +43,8 @@ const Home = () => {
 
       {/* Quick Actions */}
       <div className="grid sm:grid-cols-2 gap-4">
-        <Link to="/practice" className="block">
-          <Card className="p-6 hover:shadow-lg transition-all hover:scale-[1.02] cursor-pointer bg-gradient-to-br from-primary/5 to-transparent">
+        <Link to="/practice" className="block animate-slide-in-bottom" style={{ animationDelay: "100ms" }}>
+          <Card className="p-6 card-hover cursor-pointer bg-gradient-to-br from-primary/5 to-transparent">
             <div className="flex items-center gap-4">
               <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center">
                 <Mic className="h-6 w-6 text-primary" />
@@ -57,8 +57,8 @@ const Home = () => {
           </Card>
         </Link>
 
-        <Link to="/conversation" className="block">
-          <Card className="p-6 hover:shadow-lg transition-all hover:scale-[1.02] cursor-pointer bg-gradient-to-br from-accent/5 to-transparent">
+        <Link to="/conversation" className="block animate-slide-in-bottom" style={{ animationDelay: "200ms" }}>
+          <Card className="p-6 card-hover cursor-pointer bg-gradient-to-br from-accent/5 to-transparent">
             <div className="flex items-center gap-4">
               <div className="h-12 w-12 rounded-full bg-accent/20 flex items-center justify-center">
                 <MessageCircle className="h-6 w-6 text-accent" />
@@ -73,8 +73,8 @@ const Home = () => {
       </div>
 
       {/* Daily Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        <Card className="p-4 text-center hover:shadow-md transition-shadow">
+      <div className="grid grid-cols-3 gap-4 animate-slide-in-bottom" style={{ animationDelay: "300ms" }}>
+        <Card className="p-4 text-center card-hover">
           <div className="flex flex-col items-center gap-2">
             <div className="h-10 w-10 rounded-full bg-accent/20 flex items-center justify-center">
               <TrendingUp className="h-5 w-5 text-accent" />
@@ -83,7 +83,7 @@ const Home = () => {
             <div className="text-xs text-muted-foreground">Avg Accuracy</div>
           </div>
         </Card>
-        <Card className="p-4 text-center hover:shadow-md transition-shadow">
+        <Card className="p-4 text-center card-hover">
           <div className="flex flex-col items-center gap-2">
             <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
               <Clock className="h-5 w-5 text-primary" />
@@ -92,7 +92,7 @@ const Home = () => {
             <div className="text-xs text-muted-foreground">Min Today</div>
           </div>
         </Card>
-        <Card className="p-4 text-center hover:shadow-md transition-shadow">
+        <Card className="p-4 text-center card-hover">
           <div className="flex flex-col items-center gap-2">
             <div className="h-10 w-10 rounded-full bg-secondary/20 flex items-center justify-center">
               <Target className="h-5 w-5 text-secondary" />
@@ -104,18 +104,19 @@ const Home = () => {
       </div>
 
       {/* Recent Sessions */}
-      <Card className="p-6">
+      <Card className="p-6 animate-slide-in-bottom" style={{ animationDelay: "400ms" }}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Recent Sessions</h2>
-          <Link to="/history" className="text-sm text-primary hover:underline font-medium">
+          <Link to="/history" className="text-sm text-primary hover:underline font-medium transition-smooth">
             View All →
           </Link>
         </div>
         <div className="space-y-3">
-          {recentSessions.map((session) => (
+          {recentSessions.map((session, index) => (
             <div
               key={session.id}
-              className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+              className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-smooth cursor-pointer"
+              style={{ animationDelay: `${(index + 1) * 50}ms` }}
             >
               <div className="flex items-center gap-3 min-w-0 flex-1">
                 <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
@@ -138,14 +139,14 @@ const Home = () => {
       </Card>
 
       {/* Suggested Topics */}
-      <Card className="p-6">
+      <Card className="p-6 animate-slide-in-bottom" style={{ animationDelay: "500ms" }}>
         <h2 className="text-lg font-semibold mb-4">Suggested Topics Today</h2>
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           {suggestedTopics.map((topic) => (
             <Link key={topic} to="/practice">
               <Button
                 variant="outline"
-                className="whitespace-nowrap hover:bg-primary hover:text-primary-foreground transition-colors"
+                className="whitespace-nowrap hover:bg-primary hover:text-primary-foreground transition-smooth hover-scale"
               >
                 {topic}
               </Button>
@@ -155,7 +156,7 @@ const Home = () => {
       </Card>
 
       {/* Quick Tip */}
-      <Card className="p-6 bg-gradient-to-br from-accent/5 to-transparent border-accent/20">
+      <Card className="p-6 bg-gradient-to-br from-accent/5 to-transparent border-accent/20 animate-slide-in-bottom" style={{ animationDelay: "600ms" }}>
         <div className="flex items-start gap-3">
           <div className="h-10 w-10 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0">
             <span className="text-xl">💡</span>
