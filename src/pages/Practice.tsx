@@ -14,6 +14,8 @@ import { toast } from "@/hooks/use-toast";
 const Practice = () => {
   const [selectedTopic, setSelectedTopic] = useState("daily-life");
   const [sessionStarted, setSessionStarted] = useState(false);
+  const [currentErrors, setCurrentErrors] = useState<any[]>([]);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   
   const {
     isRecording,
@@ -42,34 +44,41 @@ const Practice = () => {
     }
   }, [transcript, currentSession, updateTranscript]);
 
+  // Analyze grammar when transcript changes
+  useEffect(() => {
+    const analyze = async () => {
+      if (currentSession && currentSession.transcript) {
+        setIsAnalyzing(true);
+        const errors = await analyzeGrammar(currentSession.transcript);
+        setCurrentErrors(errors);
+        setIsAnalyzing(false);
+      }
+    };
+    analyze();
+  }, [currentSession?.transcript, analyzeGrammar]);
+
   const handleStartSession = () => {
     startSession(selectedTopic);
     setSessionStarted(true);
     startRecording();
   };
 
-  const handleStopSession = () => {
+  const handleStopSession = async () => {
     stopRecording();
-    endSession();
+    await endSession();
     setSessionStarted(false);
-    toast({
-      title: "Session completed!",
-      description: "Your practice session has been saved.",
-    });
   };
 
   const handleReset = () => {
     stopRecording();
     resetTranscript();
+    setCurrentErrors([]);
     if (currentSession) {
       endSession();
     }
     setSessionStarted(false);
   };
 
-  const currentErrors = currentSession
-    ? analyzeGrammar(currentSession.transcript)
-    : [];
   const currentAccuracy = currentSession
     ? calculateAccuracy(currentSession.transcript, currentErrors)
     : 0;

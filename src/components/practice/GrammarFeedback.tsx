@@ -85,7 +85,7 @@ const GrammarFeedback = ({ errors, transcript }: GrammarFeedbackProps) => {
                     Corrected:
                   </span>
                   <span className="text-accent font-semibold">
-                    {error.corrected}
+                    {error.correction}
                   </span>
                 </div>
                 <div className="flex items-start gap-2 pt-1">

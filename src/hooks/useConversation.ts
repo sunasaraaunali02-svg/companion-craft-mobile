@@ -1,4 +1,6 @@
 import { useState, useCallback, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 export interface Message {
   id: string;
@@ -26,7 +28,7 @@ export const useConversation = () => {
   const [isAISpeaking, setIsAISpeaking] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const startConversation = useCallback((topic: string, difficulty: ConversationSession["difficulty"]) => {
+  const startConversation = useCallback(async (topic: string, difficulty: ConversationSession["difficulty"]) => {
     const session: ConversationSession = {
       id: Date.now().toString(),
       topic,
@@ -40,19 +42,43 @@ export const useConversation = () => {
     setCurrentSession(session);
     setMessages([]);
     
-    // AI greeting message
-    setTimeout(() => {
+    // Get AI greeting
+    setIsAITyping(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-conversation', {
+        body: { 
+          messages: [{ role: 'user', content: 'Start the conversation with a greeting.' }],
+          topic,
+          difficulty
+        }
+      });
+
+      if (error) throw error;
+
       const greetingMessage: Message = {
+        id: Date.now().toString(),
+        role: "assistant",
+        content: data.message,
+        timestamp: new Date(),
+      };
+      setMessages([greetingMessage]);
+    } catch (error) {
+      console.error('Error getting greeting:', error);
+      const fallbackGreeting: Message = {
         id: Date.now().toString(),
         role: "assistant",
         content: getGreetingForTopic(topic),
         timestamp: new Date(),
       };
-      setMessages([greetingMessage]);
-    }, 500);
+      setMessages([fallbackGreeting]);
+    } finally {
+      setIsAITyping(false);
+    }
   }, []);
 
-  const sendMessage = useCallback((content: string) => {
+  const sendMessage = useCallback(async (content: string) => {
+    if (!currentSession) return;
+
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
@@ -61,31 +87,95 @@ export const useConversation = () => {
     };
     
     setMessages((prev) => [...prev, userMessage]);
-    
-    // Simulate AI response
     setIsAITyping(true);
-    setTimeout(() => {
-      setIsAITyping(false);
+
+    try {
+      // Prepare conversation history for AI
+      const conversationMessages = [...messages, userMessage].map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
+
+      const { data, error } = await supabase.functions.invoke('ai-conversation', {
+        body: { 
+          messages: conversationMessages,
+          topic: currentSession.topic,
+          difficulty: currentSession.difficulty
+        }
+      });
+
+      if (error) throw error;
+
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: generateAIResponse(content, currentSession?.topic || ""),
+        content: data.message,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, aiMessage]);
-    }, 1500 + Math.random() * 1000);
-  }, [currentSession]);
+    } catch (error) {
+      console.error('Error generating AI response:', error);
+      toast({
+        title: "Connection Error",
+        description: "Could not get AI response. Please try again.",
+        variant: "destructive",
+      });
+      
+      // Fallback response
+      const fallbackMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: "I'm sorry, I'm having trouble responding right now. Could you please try again?",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, fallbackMessage]);
+    } finally {
+      setIsAITyping(false);
+    }
+  }, [currentSession, messages]);
 
   const playAudio = useCallback((messageId: string) => {
+    const message = messages.find(m => m.id === messageId);
+    if (!message || message.role !== 'assistant') return;
+
     setIsAISpeaking(true);
-    // Simulate audio playback
-    setTimeout(() => {
+    
+    // Use Web Speech API for text-to-speech
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(message.content);
+      utterance.lang = 'en-US';
+      utterance.rate = 0.9;
+      utterance.pitch = 1;
+      
+      utterance.onend = () => {
+        setIsAISpeaking(false);
+      };
+      
+      utterance.onerror = () => {
+        setIsAISpeaking(false);
+        toast({
+          title: "Playback Error",
+          description: "Could not play audio.",
+          variant: "destructive",
+        });
+      };
+
+      window.speechSynthesis.speak(utterance);
+    } else {
       setIsAISpeaking(false);
-    }, 2000);
-  }, []);
+      toast({
+        title: "Not Supported",
+        description: "Text-to-speech is not supported in this browser.",
+        variant: "destructive",
+      });
+    }
+  }, [messages]);
 
   const stopAudio = useCallback(() => {
     setIsAISpeaking(false);
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;

@@ -1,1 +1,7 @@
 project_id = "tbaqpokreipighxandup"
+
+[functions.analyze-grammar]
+verify_jwt = false
+
+[functions.ai-conversation]
+verify_jwt = false

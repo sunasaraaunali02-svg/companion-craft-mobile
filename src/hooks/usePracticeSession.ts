@@ -1,8 +1,10 @@
 import { useState, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 export interface GrammarError {
   original: string;
-  corrected: string;
+  correction: string;
   explanation: string;
   type: "grammar" | "spelling" | "punctuation";
 }
@@ -42,39 +44,38 @@ export const usePracticeSession = () => {
     });
   }, []);
 
-  const analyzeGrammar = useCallback((text: string): GrammarError[] => {
-    // Mock grammar analysis - in production, this would call an AI service
-    const errors: GrammarError[] = [];
-    
-    // Simple mock patterns for demonstration
-    if (text.toLowerCase().includes("i go to school yesterday")) {
-      errors.push({
-        original: "I go to school yesterday",
-        corrected: "I went to school yesterday",
-        explanation: "Use past tense 'went' with 'yesterday'",
-        type: "grammar",
-      });
-    }
-    
-    if (text.toLowerCase().includes("he don't")) {
-      errors.push({
-        original: "he don't",
-        corrected: "he doesn't",
-        explanation: "Use 'doesn't' with third person singular",
-        type: "grammar",
-      });
+  const analyzeGrammar = useCallback(async (text: string): Promise<GrammarError[]> => {
+    if (!text || text.trim().length === 0) {
+      return [];
     }
 
-    if (text.toLowerCase().includes("alot")) {
-      errors.push({
-        original: "alot",
-        corrected: "a lot",
-        explanation: "'A lot' is two separate words",
-        type: "spelling",
+    try {
+      console.log('Analyzing grammar...');
+      const { data, error } = await supabase.functions.invoke('analyze-grammar', {
+        body: { text }
       });
-    }
 
-    return errors;
+      if (error) {
+        console.error('Grammar analysis error:', error);
+        toast({
+          title: "Analysis Error",
+          description: "Could not analyze grammar. Using fallback.",
+          variant: "destructive",
+        });
+        return [];
+      }
+
+      console.log('Grammar analysis result:', data);
+      return data.errors || [];
+    } catch (error) {
+      console.error('Grammar analysis error:', error);
+      toast({
+        title: "Analysis Error",
+        description: "Could not analyze grammar. Please try again.",
+        variant: "destructive",
+      });
+      return [];
+    }
   }, []);
 
   const calculateAccuracy = useCallback((text: string, errors: GrammarError[]): number => {
@@ -90,17 +91,17 @@ export const usePracticeSession = () => {
     return Math.round(accuracy);
   }, []);
 
-  const endSession = useCallback(() => {
-    setCurrentSession((prev) => {
-      if (!prev) return null;
+  const endSession = useCallback(async () => {
+    if (!currentSession) return;
 
-      const errors = analyzeGrammar(prev.transcript);
-      const accuracy = calculateAccuracy(prev.transcript, errors);
+    try {
+      const errors = await analyzeGrammar(currentSession.transcript);
+      const accuracy = calculateAccuracy(currentSession.transcript, errors);
       const endTime = new Date();
-      const duration = Math.round((endTime.getTime() - prev.startTime.getTime()) / 1000);
+      const duration = Math.round((endTime.getTime() - currentSession.startTime.getTime()) / 1000);
 
       const completedSession: SessionData = {
-        ...prev,
+        ...currentSession,
         endTime,
         grammarErrors: errors,
         accuracyScore: accuracy,
@@ -108,9 +109,21 @@ export const usePracticeSession = () => {
       };
 
       setSessions((prevSessions) => [completedSession, ...prevSessions]);
-      return null;
-    });
-  }, [analyzeGrammar, calculateAccuracy]);
+      setCurrentSession(null);
+      
+      toast({
+        title: "Session Complete!",
+        description: `Accuracy: ${accuracy}% • Errors: ${errors.length}`,
+      });
+    } catch (error) {
+      console.error('Error ending session:', error);
+      toast({
+        title: "Error",
+        description: "Could not complete session analysis.",
+        variant: "destructive",
+      });
+    }
+  }, [currentSession, analyzeGrammar, calculateAccuracy]);
 
   return {
     currentSession,
