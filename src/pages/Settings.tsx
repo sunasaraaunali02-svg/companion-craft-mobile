@@ -318,13 +318,17 @@ const Settings = () => {
               <div className="pt-4">
                 <h3 className="font-semibold mb-2">Legal</h3>
                 <div className="space-y-2">
-                  <Button variant="link" className="h-auto p-0 text-primary">
-                    Privacy Policy
-                  </Button>
+                  <a href="/privacy-policy">
+                    <Button variant="link" className="h-auto p-0 text-primary">
+                      Privacy Policy
+                    </Button>
+                  </a>
                   <br />
-                  <Button variant="link" className="h-auto p-0 text-primary">
-                    Terms of Service
-                  </Button>
+                  <a href="/terms-of-service">
+                    <Button variant="link" className="h-auto p-0 text-primary">
+                      Terms of Service
+                    </Button>
+                  </a>
                 </div>
               </div>
             </div>

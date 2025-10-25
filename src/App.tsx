@@ -10,6 +10,7 @@ import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import Layout from "./components/layout/Layout";
 import { Skeleton } from "./components/ui/skeleton";
+import { useErrorTracking } from "./hooks/useErrorTracking";
 
 // Lazy load pages for better performance
 const Index = lazy(() => import("./pages/Index"));
@@ -21,6 +22,9 @@ const History = lazy(() => import("./pages/History"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Auth = lazy(() => import("./pages/Auth"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const Help = lazy(() => import("./pages/Help"));
 
 // Loading component for suspense fallback
 const PageLoader = () => (
@@ -33,8 +37,12 @@ const PageLoader = () => (
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <ErrorBoundary>
+const App = () => {
+  // Initialize error tracking
+  useErrorTracking();
+
+  return (
+    <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
@@ -59,6 +67,9 @@ const App = () => (
                               <Route path="/profile" element={<Profile />} />
                               <Route path="/history" element={<History />} />
                               <Route path="/settings" element={<Settings />} />
+                              <Route path="/help" element={<Help />} />
+                              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                              <Route path="/terms-of-service" element={<TermsOfService />} />
                               <Route path="*" element={<NotFound />} />
                             </Routes>
                           </Suspense>
@@ -74,6 +85,7 @@ const App = () => (
       </TooltipProvider>
     </QueryClientProvider>
   </ErrorBoundary>
-);
+  );
+};
 
 export default App;

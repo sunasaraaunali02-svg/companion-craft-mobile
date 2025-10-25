@@ -48,10 +48,22 @@ const Header = () => {
                 Settings
               </Link>
               <Link
-                to="#"
+                to="/help"
                 className="text-foreground hover:text-primary transition-colors py-2 text-lg"
               >
                 Help & Support
+              </Link>
+              <Link
+                to="/privacy-policy"
+                className="text-foreground hover:text-primary transition-colors py-2 text-lg"
+              >
+                Privacy Policy
+              </Link>
+              <Link
+                to="/terms-of-service"
+                className="text-foreground hover:text-primary transition-colors py-2 text-lg"
+              >
+                Terms of Service
               </Link>
               <Button
                 variant="ghost"
