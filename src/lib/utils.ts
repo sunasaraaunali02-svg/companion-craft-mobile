@@ -6,9 +6,10 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Post-processes raw speech recognition transcript for better grammar analysis and AI interaction
+ * Removes filler words and immediate duplicated words from transcript
+ * Preserves all punctuation
  */
-export function formatTranscription(text: string): string {
+export function cleanFillerAndDupes(text: string): string {
   if (!text || text.trim().length === 0) {
     return "";
   }
@@ -17,7 +18,8 @@ export function formatTranscription(text: string): string {
   let cleaned = text.trim().replace(/\s+/g, " ");
 
   // Step 2: Remove common filler words (case-insensitive)
-  const fillerWords = /\b(um|uh|hmm|like)\b/gi;
+  // Added: "you know", "er" to the list
+  const fillerWords = /\b(um|uh|hmm|like|you know|er)\b/gi;
   cleaned = cleaned.replace(fillerWords, " ");
 
   // Step 3: Remove duplicated tokens (e.g., "you you" -> "you")
@@ -26,15 +28,29 @@ export function formatTranscription(text: string): string {
   // Collapse spaces again after removals
   cleaned = cleaned.trim().replace(/\s+/g, " ");
 
+  return cleaned;
+}
+
+/**
+ * Post-processes raw speech recognition transcript for better grammar analysis and AI interaction
+ */
+export function formatTranscription(text: string): string {
+  if (!text || text.trim().length === 0) {
+    return "";
+  }
+
+  // Step 1: Clean fillers and duplicates
+  let cleaned = cleanFillerAndDupes(text);
+
   // If only filler words, return empty
   if (cleaned.length === 0) {
     return "";
   }
 
-  // Step 4: Capitalize first alphabetical character
+  // Step 2: Capitalize first alphabetical character
   cleaned = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
 
-  // Step 5: Add punctuation if missing
+  // Step 3: Add punctuation if missing
   // Check if already has terminal punctuation
   const hasTerminalPunctuation = /[.!?]$/.test(cleaned);
   
