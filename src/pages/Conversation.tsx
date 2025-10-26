@@ -12,11 +12,13 @@ import { MessageBubble } from "@/components/conversation/MessageBubble";
 import { TypingIndicator } from "@/components/conversation/TypingIndicator";
 import { DifficultySelector } from "@/components/conversation/DifficultySlider";
 import { Badge } from "@/components/ui/badge";
+import { formatTranscription } from "@/lib/utils";
 
 const Conversation = () => {
   const [selectedTopic, setSelectedTopic] = useState<string>("daily-life");
   const [difficulty, setDifficulty] = useState<"beginner" | "intermediate" | "advanced">("beginner");
   const [grammarFeedbackOpen, setGrammarFeedbackOpen] = useState(true);
+  const [transcriptEmpty, setTranscriptEmpty] = useState(false);
   
   const {
     currentSession,
@@ -43,7 +45,14 @@ const Conversation = () => {
 
   useEffect(() => {
     if (transcript && !isRecording) {
-      sendMessage(transcript);
+      const cleaned = formatTranscription(transcript);
+      
+      if (cleaned.length === 0) {
+        setTranscriptEmpty(true);
+      } else {
+        setTranscriptEmpty(false);
+        sendMessage(cleaned);
+      }
     }
   }, [transcript, isRecording, sendMessage]);
 
@@ -130,25 +139,34 @@ const Conversation = () => {
             </ScrollArea>
 
             {/* Input Area */}
-            <div className="flex gap-2 items-center pt-4 border-t mt-4">
-              <Button
-                size="icon"
-                variant={isRecording ? "destructive" : "default"}
-                className="h-10 w-10 rounded-full"
-                onClick={handleVoiceInput}
-              >
-                <Mic className="h-5 w-5" />
-              </Button>
-              <div className="flex-1 flex items-center justify-center">
-                {isRecording && (
-                  <span className="text-sm text-destructive font-medium animate-pulse">
-                    Recording... Speak now
-                  </span>
-                )}
-                {!isRecording && transcript && (
-                  <span className="text-sm text-muted-foreground">"{transcript}"</span>
-                )}
+            <div className="space-y-2">
+              <div className="flex gap-2 items-center pt-4 border-t mt-4">
+                <Button
+                  size="icon"
+                  variant={isRecording ? "destructive" : "default"}
+                  className="h-10 w-10 rounded-full"
+                  onClick={handleVoiceInput}
+                >
+                  <Mic className="h-5 w-5" />
+                </Button>
+                <div className="flex-1 flex items-center justify-center">
+                  {isRecording && (
+                    <span className="text-sm text-destructive font-medium animate-pulse">
+                      Recording... Speak now
+                    </span>
+                  )}
+                  {!isRecording && transcript && !transcriptEmpty && (
+                    <span className="text-sm text-muted-foreground">
+                      "{formatTranscription(transcript)}"
+                    </span>
+                  )}
+                </div>
               </div>
+              {transcriptEmpty && transcript && (
+                <div className="text-center text-xs text-muted-foreground bg-muted/50 rounded-lg p-2 animate-fade-in">
+                  Couldn't hear you — please try again.
+                </div>
+              )}
             </div>
           </Card>
 

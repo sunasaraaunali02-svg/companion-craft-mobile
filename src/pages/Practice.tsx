@@ -10,12 +10,15 @@ import AccuracyMeter from "@/components/practice/AccuracyMeter";
 import TopicSelector from "@/components/practice/TopicSelector";
 import SessionTimer from "@/components/practice/SessionTimer";
 import { toast } from "@/hooks/use-toast";
+import { formatTranscription } from "@/lib/utils";
 
 const Practice = () => {
   const [selectedTopic, setSelectedTopic] = useState("daily-life");
   const [sessionStarted, setSessionStarted] = useState(false);
   const [currentErrors, setCurrentErrors] = useState<any[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [formattedTranscript, setFormattedTranscript] = useState("");
+  const [transcriptEmpty, setTranscriptEmpty] = useState(false);
   
   const {
     isRecording,
@@ -37,14 +40,24 @@ const Practice = () => {
     calculateAccuracy,
   } = usePracticeSession();
 
-  // Update session transcript when recording changes
+  // Format and update session transcript when recording changes
   useEffect(() => {
-    if (currentSession && transcript) {
-      updateTranscript(transcript);
+    if (transcript) {
+      const cleaned = formatTranscription(transcript);
+      setFormattedTranscript(cleaned);
+      
+      if (cleaned.length === 0) {
+        setTranscriptEmpty(true);
+      } else {
+        setTranscriptEmpty(false);
+        if (currentSession) {
+          updateTranscript(cleaned);
+        }
+      }
     }
   }, [transcript, currentSession, updateTranscript]);
 
-  // Analyze grammar when transcript changes
+  // Analyze grammar when formatted transcript changes
   useEffect(() => {
     const analyze = async () => {
       if (currentSession && currentSession.transcript) {
@@ -73,6 +86,8 @@ const Practice = () => {
     stopRecording();
     resetTranscript();
     setCurrentErrors([]);
+    setFormattedTranscript("");
+    setTranscriptEmpty(false);
     if (currentSession) {
       endSession();
     }
@@ -154,22 +169,29 @@ const Practice = () => {
 
       {/* Transcription Display */}
       {sessionStarted && (
-        <TranscriptionDisplay
-          transcript={transcript}
-          interimTranscript={interimTranscript}
-          isRecording={isRecording}
-        />
+        <>
+          <TranscriptionDisplay
+            transcript={formattedTranscript}
+            interimTranscript={interimTranscript}
+            isRecording={isRecording}
+          />
+          {transcriptEmpty && transcript && (
+            <div className="text-center text-sm text-muted-foreground bg-muted/50 rounded-lg p-3 animate-fade-in">
+              Couldn't hear you — please try again.
+            </div>
+          )}
+        </>
       )}
 
       {/* Results Grid */}
-      {sessionStarted && transcript && (
+      {sessionStarted && formattedTranscript && (
         <div className="grid md:grid-cols-2 gap-6">
           {/* Accuracy Meter */}
           <AccuracyMeter score={currentAccuracy} previousScore={previousScore} />
 
           {/* Grammar Feedback */}
           <div className="md:col-span-2">
-            <GrammarFeedback errors={currentErrors} transcript={transcript} />
+            <GrammarFeedback errors={currentErrors} transcript={formattedTranscript} />
           </div>
         </div>
       )}
