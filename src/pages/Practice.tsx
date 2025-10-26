@@ -28,7 +28,8 @@ const Practice = () => {
     stopRecording,
     resetTranscript,
     isSupported,
-  } = useVoiceRecorder();
+    isDisabled,
+  } = useVoiceRecorder({ disabled: isAnalyzing });
 
   const {
     currentSession,
@@ -142,8 +143,14 @@ const Practice = () => {
         isRecording={isRecording}
         onStart={sessionStarted ? startRecording : handleStartSession}
         onStop={stopRecording}
-        disabled={!sessionStarted && !selectedTopic}
+        disabled={(!sessionStarted && !selectedTopic) || isDisabled}
       />
+      
+      {isDisabled && !isRecording && sessionStarted && (
+        <div className="text-center text-sm text-muted-foreground bg-muted/50 rounded-lg p-3 animate-fade-in">
+          Mic paused — processing
+        </div>
+      )}
 
       {/* Action Buttons */}
       {sessionStarted && (

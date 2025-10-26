@@ -32,7 +32,9 @@ const Conversation = () => {
     endConversation,
   } = useConversation();
 
-  const { isRecording, transcript, startRecording, stopRecording } = useVoiceRecorder();
+  const { isRecording, transcript, startRecording, stopRecording, isDisabled } = useVoiceRecorder({ 
+    disabled: isAITyping || isAISpeaking 
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -146,6 +148,7 @@ const Conversation = () => {
                   variant={isRecording ? "destructive" : "default"}
                   className="h-10 w-10 rounded-full"
                   onClick={handleVoiceInput}
+                  disabled={isDisabled}
                 >
                   <Mic className="h-5 w-5" />
                 </Button>
@@ -155,7 +158,12 @@ const Conversation = () => {
                       Recording... Speak now
                     </span>
                   )}
-                  {!isRecording && transcript && !transcriptEmpty && (
+                  {isDisabled && !isRecording && (
+                    <span className="text-sm text-muted-foreground animate-pulse">
+                      Mic paused — processing
+                    </span>
+                  )}
+                  {!isRecording && !isDisabled && transcript && !transcriptEmpty && (
                     <span className="text-sm text-muted-foreground">
                       "{formatTranscription(transcript)}"
                     </span>

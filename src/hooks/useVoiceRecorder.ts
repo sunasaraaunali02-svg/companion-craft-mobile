@@ -1,6 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { toast } from "@/hooks/use-toast";
 
+interface UseVoiceRecorderProps {
+  disabled?: boolean;
+}
+
 interface UseVoiceRecorderReturn {
   isRecording: boolean;
   transcript: string;
@@ -9,15 +13,18 @@ interface UseVoiceRecorderReturn {
   stopRecording: () => void;
   resetTranscript: () => void;
   isSupported: boolean;
+  isDisabled: boolean;
 }
 
-export const useVoiceRecorder = (): UseVoiceRecorderReturn => {
+export const useVoiceRecorder = ({ disabled = false }: UseVoiceRecorderProps = {}): UseVoiceRecorderReturn => {
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [interimTranscript, setInterimTranscript] = useState("");
   const [isSupported, setIsSupported] = useState(true);
+  const [canRecord, setCanRecord] = useState(true);
   
   const recognitionRef = useRef<any>(null);
+  const safetyTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // Check if Web Speech API is supported
@@ -76,14 +83,13 @@ export const useVoiceRecorder = (): UseVoiceRecorderReturn => {
     };
 
     recognition.onend = () => {
-      if (isRecording) {
-        // Restart if still supposed to be recording
-        try {
-          recognition.start();
-        } catch (e) {
-          console.error("Failed to restart recognition:", e);
-          setIsRecording(false);
-        }
+      setIsRecording(false);
+      setInterimTranscript("");
+    };
+    
+    recognition.onspeechend = () => {
+      if (recognitionRef.current && isRecording) {
+        recognitionRef.current.stop();
       }
     };
 
@@ -93,8 +99,29 @@ export const useVoiceRecorder = (): UseVoiceRecorderReturn => {
       if (recognitionRef.current) {
         recognitionRef.current.stop();
       }
+      if (safetyTimerRef.current) {
+        clearTimeout(safetyTimerRef.current);
+      }
     };
-  }, [isRecording]);
+  }, []);
+  
+  // Handle disabled state with safety delay
+  useEffect(() => {
+    if (disabled) {
+      setCanRecord(false);
+      if (isRecording && recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    } else {
+      // Add 200ms safety delay before allowing recording again
+      if (safetyTimerRef.current) {
+        clearTimeout(safetyTimerRef.current);
+      }
+      safetyTimerRef.current = setTimeout(() => {
+        setCanRecord(true);
+      }, 200);
+    }
+  }, [disabled, isRecording]);
 
   const startRecording = useCallback(() => {
     if (!isSupported) {
@@ -105,8 +132,21 @@ export const useVoiceRecorder = (): UseVoiceRecorderReturn => {
       });
       return;
     }
+    
+    if (!canRecord || disabled) {
+      toast({
+        title: "Mic paused",
+        description: "Processing — please wait",
+        variant: "default",
+      });
+      return;
+    }
 
     if (recognitionRef.current && !isRecording) {
+      // Clear transcript before starting new session
+      setTranscript("");
+      setInterimTranscript("");
+      
       try {
         recognitionRef.current.start();
         setIsRecording(true);
@@ -118,7 +158,7 @@ export const useVoiceRecorder = (): UseVoiceRecorderReturn => {
         console.error("Failed to start recording:", error);
       }
     }
-  }, [isRecording, isSupported]);
+  }, [isRecording, isSupported, canRecord, disabled]);
 
   const stopRecording = useCallback(() => {
     if (recognitionRef.current && isRecording) {
@@ -145,5 +185,6 @@ export const useVoiceRecorder = (): UseVoiceRecorderReturn => {
     stopRecording,
     resetTranscript,
     isSupported,
+    isDisabled: disabled || !canRecord,
   };
 };
