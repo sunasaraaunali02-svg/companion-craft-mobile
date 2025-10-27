@@ -17,9 +17,10 @@ export function cleanFillerAndDupes(text: string): string {
   // Step 1: Trim and collapse repeated spaces
   let cleaned = text.trim().replace(/\s+/g, " ");
 
-  // Step 2: Remove common filler words (case-insensitive)
-  // Added: "you know", "er" to the list
-  const fillerWords = /\b(um|uh|hmm|like|you know|er)\b/gi;
+  // Step 2: Remove only short meaningless filler sounds (case-insensitive)
+  // Only: "um", "uh", "oh", "yeah", "hmm", "ah", "er", "uhh"
+  // Keep meaningful words like: "you know", "like", "well", "actually"
+  const fillerWords = /\b(um|uh|oh|yeah|hmm|ah|er|uhh)\b/gi;
   cleaned = cleaned.replace(fillerWords, " ");
 
   // Step 3: Remove duplicated tokens (e.g., "you you" -> "you")
