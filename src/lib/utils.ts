@@ -32,6 +32,43 @@ export function cleanFillerAndDupes(text: string): string {
 }
 
 /**
+ * Inserts natural commas for proper punctuation and readability
+ * Preserves existing punctuation and capitalization
+ */
+export function insertNaturalCommas(text: string): string {
+  if (!text || text.trim().length === 0) {
+    return "";
+  }
+
+  let result = text;
+
+  // Insert commas after introductory phrases at sentence start
+  const introductoryPhrases = /\b(well|so|however|by the way|actually|in fact)\b(?!,)/gi;
+  result = result.replace(introductoryPhrases, "$1,");
+
+  // Insert commas after short response phrases
+  const responsePhrases = /\b(thank you|of course|I think|I believe|I guess|I mean)\b(?!,)/gi;
+  result = result.replace(responsePhrases, "$1,");
+
+  // Insert commas before coordinating conjunctions joining clauses
+  // Only if there are words on both sides (indicating independent clauses)
+  const coordinatingConjunctions = /(\w+)\s+(and|but|or|yet|for|nor)\s+(\w+)/gi;
+  result = result.replace(coordinatingConjunctions, (match, before, conj, after) => {
+    // Avoid adding comma in short phrases (less than 4 words total)
+    const wordCount = result.split(/\s+/).length;
+    if (wordCount < 6) {
+      return match;
+    }
+    return `${before}, ${conj} ${after}`;
+  });
+
+  // Clean up any double commas or comma-space issues
+  result = result.replace(/,\s*,/g, ",").replace(/,\s+/g, ", ");
+
+  return result;
+}
+
+/**
  * Post-processes raw speech recognition transcript for better grammar analysis and AI interaction
  */
 export function formatTranscription(text: string): string {
@@ -47,10 +84,13 @@ export function formatTranscription(text: string): string {
     return "";
   }
 
-  // Step 2: Capitalize first alphabetical character
+  // Step 2: Insert natural commas
+  cleaned = insertNaturalCommas(cleaned);
+
+  // Step 3: Capitalize first alphabetical character
   cleaned = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
 
-  // Step 3: Add punctuation if missing
+  // Step 4: Add punctuation if missing
   // Check if already has terminal punctuation
   const hasTerminalPunctuation = /[.!?]$/.test(cleaned);
   
