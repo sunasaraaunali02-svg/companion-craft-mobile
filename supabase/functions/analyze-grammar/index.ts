@@ -38,55 +38,23 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a professional English grammar corrector. Your only job is to fix commas and question marks in the text according to logic — not emotion or rhythm. Keep every other word and punctuation exactly the same. Do not remove or add anything else. Only modify commas and question marks.
+            content: `You are a professional English editor. Fix all grammar, tense, punctuation, and clarity errors while keeping the tone and meaning unchanged.
 
-COMMA RULES:
-1. Add a comma after introductory phrases like "Actually", "By the way", "Well", or "Of course" — only if they start the sentence.
-   ✅ Example: "Actually, I agree." 
-   ❌ Not: "So, I went there." → should be "So I went there."
+WHAT TO FIX:
+1. Grammar errors (subject-verb agreement, articles, prepositions, etc.)
+2. Tense consistency and correctness
+3. Punctuation (commas, periods, question marks, apostrophes)
+4. Clarity and word choice improvements
+5. Sentence structure issues
 
-2. Add a comma before "and", "but", "or", "so", "yet", "for", "nor" only when they connect two full independent sentences.
-   ✅ "I wanted to go, but it was raining."
-   ❌ "I like apples, and bananas." → should be "I like apples and bananas."
-
-3. Add commas around nonessential or extra information that can be removed without changing meaning.
-   ✅ "My brother, who lives in Delhi, is a teacher."
-   ❌ "The man, who came yesterday, is here." (wrong if it identifies the man)
-
-4. Add commas in lists.
-   ✅ "I bought apples, bananas, and grapes."
-
-5. Never add commas after "so", "and", "but", "when", "yes", "no", or "because" unless it separates two full ideas.
-   ❌ "So, I am happy." 
-   ✅ "So I am happy."
-
-6. Do not add commas for short pauses or emotions.
-   ❌ "I am so, happy today."
-   ✅ "I am so happy today."
-
-QUESTION MARK RULES:
-1. Add a question mark only if the sentence is a true question.
-   ✅ "Where are you going?"
-   ❌ "I asked where you were going?" → should be "I asked where you were going."
-
-2. Add question marks only when the sentence begins with or clearly asks using: who, what, when, where, why, how, which, whom, whose
-   ✅ "Why are you late?"
-   ❌ "I know why you are late."
-
-3. Add question marks when a sentence starts with helping verbs like: is, are, am, was, were, do, does, did, can, could, will, would, should, have, has, had — and it is a yes/no question.
-   ✅ "Did you finish your work?"
-   ✅ "Are you ready?"
-
-4. Never add question marks in statements that only contain "when", "why", "how", etc.
-   ✅ "I remember when we met." 
-   ✅ "Tell me what happened."
-
-5. Add question marks for tag or confirm-type endings:
-   ✅ "You're coming, right?"
-   ✅ "You did it, didn't you?"
-
-6. If a sentence begins as a statement but ends as a question, use one ? at the end only.
-   ✅ "You're free tomorrow, right?"
+RULES:
+- Keep the original tone and meaning
+- Make minimal changes needed for correctness
+- Do not add new ideas or change the message
+- Fix "I'm" to "I was" when context is past tense
+- Correct subject-verb agreement errors
+- Add missing articles (a, an, the) where needed
+- Fix run-on sentences and fragments
 
 Return your response as a JSON object with this exact structure:
 {
@@ -94,15 +62,15 @@ Return your response as a JSON object with this exact structure:
     {
       "original": "the incorrect text",
       "correction": "the corrected text",
-      "type": "punctuation",
-      "explanation": "brief explanation of comma or question mark rule applied"
+      "type": "grammar" | "spelling" | "punctuation" | "tense" | "clarity",
+      "explanation": "brief explanation of what was fixed"
     }
   ],
-  "correctedText": "the fully corrected version with only comma and question mark fixes",
+  "correctedText": "the fully corrected version",
   "accuracy": number between 0-100
 }
 
-Keep user's exact words. Only fix commas and question marks. Do not explain changes or add new punctuation. Calculate accuracy as: 100 - (number of errors / total words * 100), minimum 0.`
+Calculate accuracy as: 100 - (number of errors / total words * 100), minimum 0.`
           },
           {
             role: 'user',
