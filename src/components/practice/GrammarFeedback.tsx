@@ -1,104 +1,118 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, CheckCircle, Info } from "lucide-react";
-import { GrammarError } from "@/hooks/usePracticeSession";
+import { Sparkles, Heart, BookOpen, TrendingUp } from "lucide-react";
+
+export interface GrammarFeedback {
+  yourSentence: string;
+  correctSentence: string;
+  fluencyFeedback: string;
+  confidenceBoost: string;
+  accuracy: number;
+}
 
 interface GrammarFeedbackProps {
-  errors: GrammarError[];
+  feedback: GrammarFeedback | null;
   transcript: string;
 }
 
-const GrammarFeedback = ({ errors, transcript }: GrammarFeedbackProps) => {
-  const getErrorIcon = (type: GrammarError["type"]) => {
-    switch (type) {
-      case "grammar":
-        return <AlertCircle className="h-4 w-4" />;
-      case "spelling":
-        return <Info className="h-4 w-4" />;
-      case "punctuation":
-        return <Info className="h-4 w-4" />;
-    }
-  };
+const GrammarFeedback = ({ feedback, transcript }: GrammarFeedbackProps) => {
+  if (!transcript) {
+    return (
+      <Card className="p-6">
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            <h3 className="text-lg font-semibold">Your Coach is Ready</h3>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Start speaking to receive personalized fluency feedback
+          </p>
+        </div>
+      </Card>
+    );
+  }
 
-  const getErrorColor = (type: GrammarError["type"]) => {
-    switch (type) {
-      case "grammar":
-        return "destructive" as const;
-      case "spelling":
-        return "secondary" as const;
-      case "punctuation":
-        return "outline" as const;
-      default:
-        return "default" as const;
-    }
-  };
+  if (!feedback) {
+    return (
+      <Card className="p-6">
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Analyzing your speech...</h3>
+          <p className="text-sm text-muted-foreground">
+            Your coach is preparing feedback
+          </p>
+        </div>
+      </Card>
+    );
+  }
+
+  const hasCorrections = feedback.yourSentence !== feedback.correctSentence;
 
   return (
     <Card className="p-6">
-      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-        Grammar Feedback
-        {errors.length === 0 && transcript && (
-          <Badge variant="outline" className="bg-accent/10 text-accent border-accent/20">
-            <CheckCircle className="h-3 w-3 mr-1" />
-            Perfect!
+      <div className="space-y-6">
+        {/* Header with accuracy */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <BookOpen className="h-5 w-5 text-primary" />
+            <h3 className="text-lg font-semibold">Coach Feedback</h3>
+          </div>
+          <Badge 
+            variant={feedback.accuracy >= 90 ? "default" : feedback.accuracy >= 70 ? "secondary" : "outline"}
+            className="gap-1"
+          >
+            <TrendingUp className="h-3 w-3" />
+            {feedback.accuracy}% Accuracy
           </Badge>
-        )}
-      </h3>
+        </div>
 
-      {!transcript ? (
-        <div className="p-4 bg-muted/50 rounded-lg">
-          <p className="text-sm text-muted-foreground text-center">
-            Grammar corrections will appear here after you speak
+        {/* Your sentence */}
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            Your Sentence
+          </p>
+          <p className="text-sm p-3 rounded-lg bg-muted/50">
+            {feedback.yourSentence}
           </p>
         </div>
-      ) : errors.length === 0 ? (
-        <div className="p-4 bg-accent/10 rounded-lg border border-accent/20">
-          <p className="text-sm text-accent font-medium flex items-center gap-2">
-            <CheckCircle className="h-5 w-5" />
-            Excellent! No grammar errors detected.
+
+        {/* Corrected sentence (only if different) */}
+        {hasCorrections && (
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              Corrected Version
+            </p>
+            <p className="text-sm p-3 rounded-lg bg-primary/5 border border-primary/20 font-medium">
+              {feedback.correctSentence}
+            </p>
+          </div>
+        )}
+
+        {/* Fluency feedback */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              Fluency Tip
+            </p>
+          </div>
+          <p className="text-sm p-3 rounded-lg bg-card border">
+            {feedback.fluencyFeedback}
           </p>
         </div>
-      ) : (
-        <div className="space-y-3">
-          {errors.map((error, index) => (
-            <div
-              key={index}
-              className="p-4 bg-muted/50 rounded-lg border border-border space-y-2"
-            >
-              <div className="flex items-start gap-2">
-                <Badge variant={getErrorColor(error.type)} className="mt-0.5">
-                  {getErrorIcon(error.type)}
-                  <span className="ml-1 capitalize">{error.type}</span>
-                </Badge>
-              </div>
-              <div className="space-y-2 text-sm">
-                <div className="flex items-start gap-2">
-                  <span className="text-muted-foreground font-medium min-w-[80px]">
-                    Original:
-                  </span>
-                  <span className="line-through text-destructive">
-                    {error.original}
-                  </span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-muted-foreground font-medium min-w-[80px]">
-                    Corrected:
-                  </span>
-                  <span className="text-accent font-semibold">
-                    {error.correction}
-                  </span>
-                </div>
-                <div className="flex items-start gap-2 pt-1">
-                  <span className="text-muted-foreground font-medium min-w-[80px]">
-                    Tip:
-                  </span>
-                  <span className="text-foreground">{error.explanation}</span>
-                </div>
-              </div>
-            </div>
-          ))}
+
+        {/* Confidence boost */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Heart className="h-4 w-4 text-red-500 fill-red-500" />
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              Keep Going!
+            </p>
+          </div>
+          <p className="text-sm p-3 rounded-lg bg-gradient-to-br from-primary/10 to-secondary/10 font-medium text-foreground/90">
+            {feedback.confidenceBoost}
+          </p>
         </div>
-      )}
+      </div>
     </Card>
   );
 };

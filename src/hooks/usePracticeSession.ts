@@ -2,11 +2,12 @@ import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
-export interface GrammarError {
-  original: string;
-  correction: string;
-  explanation: string;
-  type: "grammar" | "spelling" | "punctuation";
+export interface GrammarFeedback {
+  yourSentence: string;
+  correctSentence: string;
+  fluencyFeedback: string;
+  confidenceBoost: string;
+  accuracy: number;
 }
 
 export interface SessionData {
@@ -15,8 +16,7 @@ export interface SessionData {
   startTime: Date;
   endTime?: Date;
   transcript: string;
-  grammarErrors: GrammarError[];
-  accuracyScore: number;
+  feedback: GrammarFeedback | null;
   duration: number;
 }
 
@@ -30,8 +30,7 @@ export const usePracticeSession = () => {
       topic,
       startTime: new Date(),
       transcript: "",
-      grammarErrors: [],
-      accuracyScore: 0,
+      feedback: null,
       duration: 0,
     };
     setCurrentSession(newSession);
@@ -44,9 +43,9 @@ export const usePracticeSession = () => {
     });
   }, []);
 
-  const analyzeGrammar = useCallback(async (text: string): Promise<GrammarError[]> => {
+  const analyzeGrammar = useCallback(async (text: string): Promise<GrammarFeedback | null> => {
     if (!text || text.trim().length === 0) {
-      return [];
+      return null;
     }
 
     try {
@@ -59,14 +58,14 @@ export const usePracticeSession = () => {
         console.error('Grammar analysis error:', error);
         toast({
           title: "Analysis Error",
-          description: "Could not analyze grammar. Using fallback.",
+          description: "Could not analyze grammar. Please try again.",
           variant: "destructive",
         });
-        return [];
+        return null;
       }
 
       console.log('Grammar analysis result:', data);
-      return data.errors || [];
+      return data as GrammarFeedback;
     } catch (error) {
       console.error('Grammar analysis error:', error);
       toast({
@@ -74,37 +73,22 @@ export const usePracticeSession = () => {
         description: "Could not analyze grammar. Please try again.",
         variant: "destructive",
       });
-      return [];
+      return null;
     }
-  }, []);
-
-  const calculateAccuracy = useCallback((text: string, errors: GrammarError[]): number => {
-    if (!text || text.trim().length === 0) return 0;
-    
-    const wordCount = text.trim().split(/\s+/).length;
-    const errorCount = errors.length;
-    
-    // Calculate accuracy based on errors per 100 words
-    const errorRate = (errorCount / wordCount) * 100;
-    const accuracy = Math.max(0, Math.min(100, 100 - errorRate * 10));
-    
-    return Math.round(accuracy);
   }, []);
 
   const endSession = useCallback(async () => {
     if (!currentSession) return;
 
     try {
-      const errors = await analyzeGrammar(currentSession.transcript);
-      const accuracy = calculateAccuracy(currentSession.transcript, errors);
+      const feedback = await analyzeGrammar(currentSession.transcript);
       const endTime = new Date();
       const duration = Math.round((endTime.getTime() - currentSession.startTime.getTime()) / 1000);
 
       const completedSession: SessionData = {
         ...currentSession,
         endTime,
-        grammarErrors: errors,
-        accuracyScore: accuracy,
+        feedback,
         duration,
       };
 
@@ -113,7 +97,9 @@ export const usePracticeSession = () => {
       
       toast({
         title: "Session Complete!",
-        description: `Accuracy: ${accuracy}% • Errors: ${errors.length}`,
+        description: feedback 
+          ? `Accuracy: ${feedback.accuracy}%`
+          : "Session saved successfully",
       });
     } catch (error) {
       console.error('Error ending session:', error);
@@ -123,7 +109,7 @@ export const usePracticeSession = () => {
         variant: "destructive",
       });
     }
-  }, [currentSession, analyzeGrammar, calculateAccuracy]);
+  }, [currentSession, analyzeGrammar]);
 
   return {
     currentSession,
@@ -132,6 +118,5 @@ export const usePracticeSession = () => {
     updateTranscript,
     endSession,
     analyzeGrammar,
-    calculateAccuracy,
   };
 };

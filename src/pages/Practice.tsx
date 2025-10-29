@@ -15,7 +15,6 @@ import { formatTranscription } from "@/lib/utils";
 const Practice = () => {
   const [selectedTopic, setSelectedTopic] = useState("daily-life");
   const [sessionStarted, setSessionStarted] = useState(false);
-  const [currentErrors, setCurrentErrors] = useState<any[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [formattedTranscript, setFormattedTranscript] = useState("");
   const [transcriptEmpty, setTranscriptEmpty] = useState(false);
@@ -38,7 +37,6 @@ const Practice = () => {
     updateTranscript,
     endSession,
     analyzeGrammar,
-    calculateAccuracy,
   } = usePracticeSession();
 
   // Format and update session transcript when recording changes
@@ -61,15 +59,21 @@ const Practice = () => {
   // Analyze grammar when formatted transcript changes
   useEffect(() => {
     const analyze = async () => {
-      if (currentSession && currentSession.transcript) {
+      if (currentSession && currentSession.transcript && sessionStarted) {
         setIsAnalyzing(true);
-        const errors = await analyzeGrammar(currentSession.transcript);
-        setCurrentErrors(errors);
+        const feedback = await analyzeGrammar(currentSession.transcript);
+        // Update session with feedback
+        if (feedback && currentSession) {
+          currentSession.feedback = feedback;
+        }
         setIsAnalyzing(false);
       }
     };
-    analyze();
-  }, [currentSession?.transcript, analyzeGrammar]);
+    
+    // Debounce the analysis
+    const timeoutId = setTimeout(analyze, 1000);
+    return () => clearTimeout(timeoutId);
+  }, [currentSession?.transcript, analyzeGrammar, sessionStarted]);
 
   const handleStartSession = () => {
     startSession(selectedTopic);
@@ -86,7 +90,6 @@ const Practice = () => {
   const handleReset = () => {
     stopRecording();
     resetTranscript();
-    setCurrentErrors([]);
     setFormattedTranscript("");
     setTranscriptEmpty(false);
     if (currentSession) {
@@ -95,10 +98,10 @@ const Practice = () => {
     setSessionStarted(false);
   };
 
-  const currentAccuracy = currentSession
-    ? calculateAccuracy(currentSession.transcript, currentErrors)
-    : 0;
-  const previousScore = sessions.length > 0 ? sessions[0].accuracyScore : undefined;
+  const currentAccuracy = currentSession?.feedback?.accuracy ?? 0;
+  const previousScore = sessions.length > 0 && sessions[0].feedback
+    ? sessions[0].feedback.accuracy
+    : undefined;
 
   if (!isSupported) {
     return (
@@ -198,7 +201,10 @@ const Practice = () => {
 
           {/* Grammar Feedback */}
           <div className="md:col-span-2">
-            <GrammarFeedback errors={currentErrors} transcript={formattedTranscript} />
+            <GrammarFeedback 
+              feedback={currentSession?.feedback ?? null} 
+              transcript={formattedTranscript} 
+            />
           </div>
         </div>
       )}
