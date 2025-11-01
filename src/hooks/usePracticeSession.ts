@@ -3,10 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
 export interface GrammarFeedback {
-  yourSentence: string;
-  correctSentence: string;
+  yourInput: string;
+  correctedVersion: string;
+  mainIssues: string[];
   fluencyFeedback: string;
-  confidenceBoost: string;
   accuracy: number;
 }
 
