@@ -48,8 +48,19 @@ export const usePracticeSession = () => {
       return null;
     }
 
+    // Check word count before sending
+    const wordCount = text.trim().split(/\s+/).length;
+    if (wordCount > 1000) {
+      toast({
+        title: "Text Too Long",
+        description: "Please keep your input under 1000 words for analysis.",
+        variant: "destructive",
+      });
+      return null;
+    }
+
     try {
-      console.log('Analyzing grammar...');
+      console.log(`Analyzing grammar (${wordCount} words)...`);
       const { data, error } = await supabase.functions.invoke('analyze-grammar', {
         body: { text }
       });
@@ -58,7 +69,18 @@ export const usePracticeSession = () => {
         console.error('Grammar analysis error:', error);
         toast({
           title: "Analysis Error",
-          description: "Could not analyze grammar. Please try again.",
+          description: data?.error || "Unable to analyze. Please try again later.",
+          variant: "destructive",
+        });
+        return null;
+      }
+
+      // Validate response structure
+      if (!data || typeof data.accuracy !== 'number' || !Array.isArray(data.mainIssues)) {
+        console.error('Invalid response structure:', data);
+        toast({
+          title: "Analysis Error",
+          description: "Received invalid response. Please try again.",
           variant: "destructive",
         });
         return null;
@@ -70,7 +92,7 @@ export const usePracticeSession = () => {
       console.error('Grammar analysis error:', error);
       toast({
         title: "Analysis Error",
-        description: "Could not analyze grammar. Please try again.",
+        description: "Unable to analyze. Please try again later.",
         variant: "destructive",
       });
       return null;

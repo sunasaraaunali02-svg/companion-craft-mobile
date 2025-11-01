@@ -15,8 +15,30 @@ serve(async (req) => {
     
     if (!text || text.trim().length === 0) {
       return new Response(
-        JSON.stringify({ errors: [], accuracy: 100 }),
+        JSON.stringify({ 
+          yourInput: "",
+          correctedVersion: "",
+          mainIssues: [],
+          fluencyFeedback: "No text provided to analyze.",
+          accuracy: 100
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate input length (max ~1000 words)
+    const wordCount = text.trim().split(/\s+/).length;
+    if (wordCount > 1000) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Text too long. Please keep input under 1000 words for optimal analysis.',
+          yourInput: text,
+          correctedVersion: text,
+          mainIssues: [],
+          fluencyFeedback: "Input is too long to analyze.",
+          accuracy: 0
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -25,7 +47,7 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    console.log('Analyzing grammar for text:', text.substring(0, 50) + '...');
+    console.log(`Analyzing grammar for text (${wordCount} words):`, text.substring(0, 50) + '...');
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -38,50 +60,27 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are an English Fluency Analyzer AI.
+            content: `English Fluency Analyzer: Detect ONLY major grammar/structure issues affecting clarity.
 
-PURPOSE:
-Analyze spoken or written English conversation text and detect only major grammar or structure issues that affect clarity. Support long paragraphs and multi-turn conversations.
+IGNORE: punctuation, caps, spelling, style, accents, minor errors.
 
-STRICTLY IGNORE:
-- Punctuation, capitalization, and stylistic errors
-- Spelling (unless it changes meaning)
-- Accent or pronunciation mistakes
-- Minor or negligible errors
+DETECT: verb tense, subject-verb agreement, word order, missing/wrong articles/prepositions, sentence logic.
 
-FOCUS ONLY ON:
-- Verb tense correctness
-- Subject-verb agreement
-- Word order issues
-- Missing/extra words that affect meaning
-- Articles (a, an, the) that change meaning
-- Prepositions that change meaning
-- Logical sentence flow in conversation
-
-OUTPUT FORMAT (JSON):
+OUTPUT (JSON):
 {
-  "yourInput": "user's exact input text",
-  "correctedVersion": "natural corrected version with grammar fixes",
-  "mainIssues": ["issue 1", "issue 2", "issue 3"],
-  "fluencyFeedback": "very short 1-line teaching feedback (max 20 words)",
-  "accuracy": number between 0-100
+  "yourInput": "exact user text",
+  "correctedVersion": "natural grammar fix",
+  "mainIssues": ["2-4 key issues or empty"],
+  "fluencyFeedback": "1-line tip (max 20 words)",
+  "accuracy": 0-100
 }
 
-RULES:
-- mainIssues: List 2-4 key grammar issues only (if any exist)
-- fluencyFeedback: Maximum 20 words, clear and direct
-- correctedVersion: Natural and conversational, not overly formal
-- If text is perfect, mainIssues should be empty array
-- Calculate accuracy as: 100 - (number of major errors / total words * 100), minimum 0
-
-STYLE:
-- Be concise and direct
-- Focus on conversation fluency, not writing perfection
-- Provide actionable feedback only`
+If perfect → mainIssues = []
+Accuracy = 100 - (major_errors/total_words × 100)`
           },
           {
             role: 'user',
-            content: `Please analyze this English text:\n\n"${text}"`
+            content: text
           }
         ],
         response_format: { type: "json_object" }
@@ -107,12 +106,22 @@ STYLE:
     }
 
     const data = await response.json();
-    const result = JSON.parse(data.choices[0].message.content);
+    const rawContent = data.choices[0].message.content;
+    const result = JSON.parse(rawContent);
 
-    console.log('Grammar analysis result:', result);
+    // Validate response structure
+    const validatedResult = {
+      yourInput: result.yourInput || text,
+      correctedVersion: result.correctedVersion || text,
+      mainIssues: Array.isArray(result.mainIssues) ? result.mainIssues : [],
+      fluencyFeedback: result.fluencyFeedback || "Analysis completed.",
+      accuracy: typeof result.accuracy === 'number' ? Math.max(0, Math.min(100, result.accuracy)) : 0
+    };
+
+    console.log('Grammar analysis result:', validatedResult);
 
     return new Response(
-      JSON.stringify(result),
+      JSON.stringify(validatedResult),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
@@ -120,8 +129,11 @@ STYLE:
     console.error('Error in analyze-grammar function:', error);
     return new Response(
       JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Unknown error',
-        errors: [],
+        error: 'Unable to analyze. Please try again later.',
+        yourInput: "",
+        correctedVersion: "",
+        mainIssues: [],
+        fluencyFeedback: "Analysis service temporarily unavailable.",
         accuracy: 0
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
