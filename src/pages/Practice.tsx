@@ -28,6 +28,7 @@ const Practice = () => {
     resetTranscript,
     isSupported,
     isDisabled,
+    confidence,
   } = useVoiceRecorder({ disabled: isAnalyzing });
 
   const {
