@@ -90,8 +90,10 @@ export const useConversation = () => {
     setIsAITyping(true);
 
     try {
-      // Prepare conversation history for AI
-      const conversationMessages = [...messages, userMessage].map(msg => ({
+      // Prepare conversation history for AI (limit to last 10 messages to avoid rate limits)
+      const allMessages = [...messages, userMessage];
+      const recentMessages = allMessages.slice(-10);
+      const conversationMessages = recentMessages.map(msg => ({
         role: msg.role,
         content: msg.content
       }));
@@ -113,11 +115,17 @@ export const useConversation = () => {
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, aiMessage]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating AI response:', error);
+      
+      // Check if it's a rate limit error
+      const isRateLimitError = error?.message?.includes('429') || error?.message?.includes('Rate limit');
+      
       toast({
-        title: "Connection Error",
-        description: "Could not get AI response. Please try again.",
+        title: isRateLimitError ? "Rate Limit Reached" : "Connection Error",
+        description: isRateLimitError 
+          ? "Too many requests. Please wait a moment and try again." 
+          : "Could not get AI response. Please try again.",
         variant: "destructive",
       });
       
@@ -125,7 +133,9 @@ export const useConversation = () => {
       const fallbackMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: "I'm sorry, I'm having trouble responding right now. Could you please try again?",
+        content: isRateLimitError 
+          ? "I need a moment to catch my breath! Please wait a few seconds before continuing."
+          : "I'm sorry, I'm having trouble responding right now. Could you please try again?",
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, fallbackMessage]);
