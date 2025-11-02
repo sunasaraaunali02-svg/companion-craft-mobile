@@ -45,6 +45,13 @@ export const usePracticeSession = () => {
     });
   }, []);
 
+  const updateFeedback = useCallback((feedback: GrammarFeedback) => {
+    setCurrentSession((prev) => {
+      if (!prev) return null;
+      return { ...prev, feedback };
+    });
+  }, []);
+
   const analyzeGrammar = useCallback(async (text: string): Promise<GrammarFeedback | null> => {
     if (!text || text.trim().length === 0) {
       return null;
@@ -102,7 +109,7 @@ export const usePracticeSession = () => {
       });
       return null;
     }
-  }, []);
+  }, [settings.grammar.strictnessLevel]);
 
   const endSession = useCallback(async () => {
     if (!currentSession) return;
@@ -143,6 +150,7 @@ export const usePracticeSession = () => {
     sessions,
     startSession,
     updateTranscript,
+    updateFeedback,
     endSession,
     analyzeGrammar,
   };

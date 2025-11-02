@@ -35,6 +35,7 @@ const Practice = () => {
     sessions,
     startSession,
     updateTranscript,
+    updateFeedback,
     endSession,
     analyzeGrammar,
   } = usePracticeSession();
@@ -62,9 +63,9 @@ const Practice = () => {
       if (currentSession && currentSession.transcript && sessionStarted) {
         setIsAnalyzing(true);
         const feedback = await analyzeGrammar(currentSession.transcript);
-        // Update session with feedback
-        if (feedback && currentSession) {
-          currentSession.feedback = feedback;
+        // Update session with feedback using proper state update
+        if (feedback) {
+          updateFeedback(feedback);
         }
         setIsAnalyzing(false);
       }
@@ -73,7 +74,7 @@ const Practice = () => {
     // Debounce the analysis
     const timeoutId = setTimeout(analyze, 1000);
     return () => clearTimeout(timeoutId);
-  }, [currentSession?.transcript, analyzeGrammar, sessionStarted]);
+  }, [currentSession?.transcript, analyzeGrammar, sessionStarted, updateFeedback]);
 
   const handleStartSession = () => {
     startSession(selectedTopic);
