@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { useToast } from "@/hooks/use-toast";
 import { Volume2, Mic, Brain, Bell, Shield, RotateCcw } from "lucide-react";
@@ -176,26 +177,46 @@ const Settings = () => {
         {/* AI Settings */}
         <TabsContent value="ai" className="space-y-4">
           <Card className="p-6">
-            <h2 className="text-lg font-semibold mb-4">AI Behavior</h2>
+            <h2 className="text-lg font-semibold mb-4">Grammar Correction Mode</h2>
             <div className="space-y-6">
               <div>
-                <Label htmlFor="grammar-strictness">Grammar Correction Strictness</Label>
-                <Select
+                <Label className="text-base">Correction Level</Label>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Choose how detailed you want the grammar feedback to be
+                </p>
+                <RadioGroup
                   value={settings.grammar.strictnessLevel}
                   onValueChange={(value) =>
-                    updateSettings("grammar", { strictnessLevel: value })
+                    updateSettings("grammar", { strictnessLevel: value as any })
                   }
+                  className="space-y-3"
                 >
-                  <SelectTrigger id="grammar-strictness" className="mt-2">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="lenient">Lenient - Major errors only</SelectItem>
-                    <SelectItem value="balanced">Balanced - Common mistakes</SelectItem>
-                    <SelectItem value="strict">Strict - All errors</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <div className="flex items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <RadioGroupItem value="lenient" id="lenient" />
+                    <div className="space-y-1 leading-none">
+                      <Label htmlFor="lenient" className="font-medium cursor-pointer">
+                        Major Errors Only
+                      </Label>
+                      <p className="text-sm text-muted-foreground">
+                        Focus on critical grammar mistakes that affect clarity
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <RadioGroupItem value="strict" id="strict" />
+                    <div className="space-y-1 leading-none">
+                      <Label htmlFor="strict" className="font-medium cursor-pointer">
+                        All Errors
+                      </Label>
+                      <p className="text-sm text-muted-foreground">
+                        Detailed feedback on all grammar, punctuation, and style issues
+                      </p>
+                    </div>
+                  </div>
+                </RadioGroup>
               </div>
+
+              <Separator />
 
               <div>
                 <Label htmlFor="ai-style">Conversation Style</Label>

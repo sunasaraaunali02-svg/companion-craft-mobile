@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { text } = await req.json();
+    const { text, correctionMode = 'lenient' } = await req.json();
     
     if (!text || text.trim().length === 0) {
       return new Response(
@@ -47,20 +47,25 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    console.log(`Analyzing grammar for text (${wordCount} words):`, text.substring(0, 50) + '...');
+    console.log(`Analyzing grammar for text (${wordCount} words, mode: ${correctionMode}):`, text.substring(0, 50) + '...');
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          {
-            role: 'system',
-            content: `English Fluency Analyzer: Detect ONLY major grammar/structure issues affecting clarity.
+    // Determine system prompt based on correction mode
+    const systemPrompt = correctionMode === 'strict'
+      ? `English Grammar Analyzer: Analyze ALL errors thoroughly.
+
+DETECT: grammar, punctuation, capitalization, spelling, articles, prepositions, verb tense, subject-verb agreement, word order, style, clarity.
+
+OUTPUT (JSON):
+{
+  "yourInput": "exact user text",
+  "correctedVersion": "fully corrected version with all fixes",
+  "mainIssues": ["issue 1", "issue 2", "issue 3", "issue 4"],
+  "fluencyFeedback": "detailed feedback on improvements (max 30 words)",
+  "accuracy": 0-100
+}
+
+Be thorough and identify all errors for learning purposes.`
+      : `English Fluency Analyzer: Detect ONLY major grammar/structure issues affecting clarity.
 
 IGNORE: punctuation, caps, spelling, style, accents, minor errors.
 
@@ -76,7 +81,20 @@ OUTPUT (JSON):
 }
 
 If perfect → mainIssues = []
-Accuracy = 100 - (major_errors/total_words × 100)`
+Accuracy = 100 - (major_errors/total_words × 100)`;
+
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          {
+            role: 'system',
+            content: systemPrompt
           },
           {
             role: 'user',

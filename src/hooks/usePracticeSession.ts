@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { useAppSettings } from "@/hooks/useAppSettings";
 
 export interface GrammarFeedback {
   yourInput: string;
@@ -21,6 +22,7 @@ export interface SessionData {
 }
 
 export const usePracticeSession = () => {
+  const { settings } = useAppSettings();
   const [currentSession, setCurrentSession] = useState<SessionData | null>(null);
   const [sessions, setSessions] = useState<SessionData[]>([]);
 
@@ -62,7 +64,10 @@ export const usePracticeSession = () => {
     try {
       console.log(`Analyzing grammar (${wordCount} words)...`);
       const { data, error } = await supabase.functions.invoke('analyze-grammar', {
-        body: { text }
+        body: { 
+          text,
+          correctionMode: settings.grammar.strictnessLevel 
+        }
       });
 
       if (error) {
